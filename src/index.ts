@@ -24,12 +24,38 @@ const teamSchema = z.object({
     passivec: z.string().optional(),
 }).array();
 
+interface Component {
+    type: string;
+    [k: string]: any;
+}
+interface JSONEntity {
+    components: Component[];
+    id: string;
+    tags: string[];
+}
+
+function transformHeroObject(obj: { id: string; components: any[] }) {
+    const o: {
+        [k: string]: {
+            [s: string]: any[];
+        }
+    } = { [obj.id]: {} };
+
+    for (let component of obj.components) {
+        const { type, ...rest } = component;
+        if (!o[obj.id][type]) o[obj.id][type] = [];
+        if (rest) o[obj.id][type].push(rest);
+    }
+
+    return o;
+}
+
 app.get("/worlds/:id", (req, res) => {
     const world = GAME_WORLDS[req.params.id];
     if (world) {
         const units = Array.from(world.getEntities("Name"));
         res.status(200);
-        res.send(units.map((i) => i.getObject(false)));
+        res.send(units.map((i) => transformHeroObject(i.getObject(false))));
     } else {
         res.status(404);
         res.send("No active session found");
@@ -39,7 +65,7 @@ app.get("/worlds/:id", (req, res) => {
 app.post("/team/", validateRequest({
     body: z.object({
         team1: teamSchema,
-        team2: teamSchema 
+        team2: teamSchema
     }).strict()
 }), (req, res) => {
     const world = new GameWorld();
