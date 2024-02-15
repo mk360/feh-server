@@ -36,15 +36,13 @@ interface JSONEntity {
 
 function transformHeroObject(obj: { id: string; components: any[] }) {
     const o: {
-        [k: string]: {
-            [s: string]: any[];
-        }
-    } = { [obj.id]: {} };
+        [s: string]: any[];
+    } = {};
 
     for (let component of obj.components) {
         const { type, ...rest } = component;
-        if (!o[obj.id][type]) o[obj.id][type] = [];
-        if (rest) o[obj.id][type].push(rest);
+        if (!o[type]) o[type] = [];
+        if (rest) o[type].push(rest);
     }
 
     return o;
@@ -55,7 +53,15 @@ app.get("/worlds/:id", (req, res) => {
     if (world) {
         const units = Array.from(world.getEntities("Name"));
         res.status(200);
-        res.send(units.map((i) => transformHeroObject(i.getObject(false))));
+        const heroStore: {
+            [k: string]: ReturnType<typeof transformHeroObject>
+        } = {};
+        for (let unit of units) {
+            const objectData = unit.getObject(false);
+            heroStore[objectData.id] = transformHeroObject(objectData);
+        }
+        console.log(heroStore);
+        res.send(heroStore);
     } else {
         res.status(404);
         res.send("No active session found");
