@@ -14,8 +14,10 @@
     "express": "^4.18.2",
     "feh-battles": "file:../feh-battles",
     "shortid": "^2.2.16",
+    "socket.io": "^4.7.4",
     "zod": "^3.22.4",
-    "zod-express-middleware": "^1.4.0"
+    "zod-express-middleware": "^1.4.0",
+    "zod-sockets": "^0.8.0"
   },
   "devDependencies": {
     "@types/body-parser": "^1.19.5",

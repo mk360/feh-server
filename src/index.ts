@@ -1,15 +1,29 @@
 import GameWorld from "feh-battles";
 import express from "express";
+import { createServer } from "http";
 import bodyParser from "body-parser";
 import cors from "cors";
 import { validateRequest } from "zod-express-middleware";
 import { z } from "zod";
 import GAME_WORLDS from "./game-worlds";
 import shortid from "shortid";
+import { Server } from "socket.io";
 
 const PORT = 3600;
 
 const app = express();
+
+const server = createServer(app);
+const io = new Server(server, {
+    cors: {
+        origin: "http://localhost:3000"
+    }
+});
+
+io.on("connection", (socket) => {
+    console.log(socket.id);
+    socket.on("movement request", console.log)
+});
 
 app.use(cors());
 app.use(bodyParser.json());
@@ -112,7 +126,7 @@ app.post("/team/", validateRequest({
     res.send(id);
 });
 
-app.listen(PORT, "localhost", () => {
+server.listen(PORT, () => {
     console.log("server listening at " + PORT);
 });
 
