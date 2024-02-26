@@ -8,6 +8,7 @@ import { z } from "zod";
 import GAME_WORLDS from "./game-worlds";
 import shortid from "shortid";
 import { Server } from "socket.io";
+import debugWorld from "./debug-world";
 
 const PORT = 3600;
 
@@ -16,13 +17,44 @@ const app = express();
 const server = createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: "http://localhost:3000"
+        origin: "*"
     }
 });
 
 io.on("connection", (socket) => {
-    console.log(socket.id);
-    socket.on("movement request", console.log)
+    socket.on("request preview movement", ({ worldId, unitId }: { worldId: string, unitId: string }) => {  
+        // const world = GAME_WORLDS[worldId];
+        const world = debugWorld;
+        const movement = world?.getUnitMovement(unitId);
+        const arr: number[] = [];
+        movement.forEach((comp) => {
+            arr.push((comp.x + 1) * 10 + comp.y + 1);
+        });
+        console.log(arr);
+        socket.emit("response preview movement", arr);
+    }).on("request confirm movement", (payload: {
+        unitId: string,
+        x: number,
+        y: number
+    }) => {
+        const world = debugWorld;
+        if (world.previewUnitMovement(payload.unitId, payload)) {
+            const newPosition = world.moveUnit(payload.unitId, payload);
+            io.emit("response confirm movement", {
+                valid: true,
+                unitId: payload.unitId,
+                x: newPosition.x,
+                y: newPosition.y,
+            });
+        }
+        const oldPosition = world.getEntity(payload.unitId)?.getOne("Position");
+        io.emit("response confirm movement", {
+            valid: false,
+            unitId: payload.unitId,
+            x: oldPosition!.x,
+            y: oldPosition!.y,
+        });
+    }).on("attack preview", console.log);
 });
 
 app.use(cors());
@@ -37,16 +69,6 @@ const teamSchema = z.object({
     passiveb: z.string().optional(),
     passivec: z.string().optional(),
 }).array();
-
-interface Component {
-    type: string;
-    [k: string]: any;
-}
-interface JSONEntity {
-    components: Component[];
-    id: string;
-    tags: string[];
-}
 
 function transformHeroObject(obj: { id: string; components: any[] }) {
     const o: {
@@ -63,19 +85,24 @@ function transformHeroObject(obj: { id: string; components: any[] }) {
 }
 
 app.get("/worlds/:id", (req, res) => {
-    const world = GAME_WORLDS[req.params.id];
+    process.env.NODE_ENV = "development";
+    const world = process.env.NODE_ENV === "development" ? debugWorld : GAME_WORLDS[req.params.id];
     if (world) {
         const units = Array.from(world.getEntities("Name"));
         res.status(200);
         const heroStore: {
-            [k: string]: ReturnType<typeof transformHeroObject>
+            [k: string]: {
+                [s: string]: any[]
+            }
         } = {};
         for (let unit of units) {
             const objectData = unit.getObject(false);
             heroStore[objectData.id] = transformHeroObject(objectData);
         }
-        console.log(heroStore);
-        res.send(heroStore);
+        res.send({
+            mapId: world.state.mapId,
+            heroes: heroStore
+        });
     } else {
         res.status(404);
         res.send("No active session found");
