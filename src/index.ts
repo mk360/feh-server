@@ -10,6 +10,8 @@ import shortid from "shortid";
 import { Server } from "socket.io";
 import debugWorld from "./debug-world";
 
+debugWorld.startTurn();
+
 const PORT = 3600;
 
 const app = express();
@@ -25,13 +27,16 @@ io.on("connection", (socket) => {
     socket.on("request preview movement", ({ worldId, unitId }: { worldId: string, unitId: string }) => {  
         // const world = GAME_WORLDS[worldId];
         const world = debugWorld;
-        const movement = world?.getUnitMovement(unitId);
+        const { movementTiles, attackTiles } = world?.getUnitMovement(unitId);
         const arr: number[] = [];
-        movement.forEach((comp) => {
-            arr.push((comp.x + 1) * 10 + comp.y + 1);
+        movementTiles.forEach((comp) => {
+            arr.push(comp.x * 10 + comp.y);
         });
-        console.log(arr);
-        socket.emit("response preview movement", arr);
+        const arr2: number[] = [];
+        attackTiles.forEach((comp) => {
+            arr2.push(comp.x * 10 + comp.y);
+        });
+        socket.emit("response preview movement", { movement: arr, attack: arr2 });
     }).on("request confirm movement", (payload: {
         unitId: string,
         x: number,
@@ -46,14 +51,15 @@ io.on("connection", (socket) => {
                 x: newPosition.x,
                 y: newPosition.y,
             });
+        } else {
+            const oldPosition = world.getEntity(payload.unitId)?.getOne("Position");
+            io.emit("response confirm movement", {
+                valid: false,
+                unitId: payload.unitId,
+                x: oldPosition!.x,
+                y: oldPosition!.y,
+            });
         }
-        const oldPosition = world.getEntity(payload.unitId)?.getOne("Position");
-        io.emit("response confirm movement", {
-            valid: false,
-            unitId: payload.unitId,
-            x: oldPosition!.x,
-            y: oldPosition!.y,
-        });
     }).on("attack preview", console.log);
 });
 
