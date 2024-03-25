@@ -10,8 +10,6 @@ import shortid from "shortid";
 import { Server } from "socket.io";
 import debugWorld from "./debug-world";
 
-debugWorld.startTurn();
-
 const PORT = 3600;
 
 const app = express();
@@ -27,7 +25,7 @@ io.on("connection", (socket) => {
     socket.on("request preview movement", ({ worldId, unitId }: { worldId: string, unitId: string }) => {  
         // const world = GAME_WORLDS[worldId];
         const world = debugWorld;
-        const { movementTiles, attackTiles } = world?.getUnitMovement(unitId);
+        const { movementTiles, attackTiles, warpTiles } = world?.getUnitMovement(unitId);
         const arr: number[] = [];
         movementTiles.forEach((comp) => {
             arr.push(comp.x * 10 + comp.y);
@@ -36,7 +34,11 @@ io.on("connection", (socket) => {
         attackTiles.forEach((comp) => {
             arr2.push(comp.x * 10 + comp.y);
         });
-        socket.emit("response preview movement", { movement: arr, attack: arr2 });
+        const arr3: number[] = [];
+        warpTiles.forEach((comp) => {
+            arr3.push(comp.x * 10 + comp.y);
+        });
+        socket.emit("response preview movement", { movement: arr, attack: arr2, warpTiles: arr3 });
     }).on("request confirm movement", (payload: {
         unitId: string,
         x: number,
@@ -60,7 +62,8 @@ io.on("connection", (socket) => {
                 y: oldPosition!.y,
             });
         }
-    }).on("attack preview", console.log);
+    }).on("request preview attack", console.log);
+    io.emit("turn start", debugWorld.startTurn());
 });
 
 app.use(cors());

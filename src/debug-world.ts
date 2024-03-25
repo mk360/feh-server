@@ -2,6 +2,8 @@ import GameWorld from "feh-battles";
 
 const debugWorld = new GameWorld();
 
+debugWorld.generateMap();
+
 const teams = [{
     name: "Corrin: Fateful Prince",
     weapon: "Yato",
@@ -32,8 +34,5 @@ debugWorld.initiate({
     team1: teams,
     team2: teams,
 });
-
-debugWorld.generateMap();
-
 
 export default debugWorld;
