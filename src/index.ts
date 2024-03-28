@@ -10,6 +10,13 @@ import shortid from "shortid";
 import { Server } from "socket.io";
 import debugWorld from "./debug-world";
 
+debugWorld.startTurn();
+
+/**
+ * TODO:
+ * implement basic combat preview response
+ */
+
 const PORT = 3600;
 
 const app = express();
@@ -18,27 +25,33 @@ const server = createServer(app);
 const io = new Server(server, {
     cors: {
         origin: "*"
-    }
+    },
 });
 
 io.on("connection", (socket) => {
-    socket.on("request preview movement", ({ worldId, unitId }: { worldId: string, unitId: string }) => {  
+    socket.on("request preview movement", ({ worldId, unitId }: { worldId: string, unitId: string }) => {
         // const world = GAME_WORLDS[worldId];
         const world = debugWorld;
-        const { movementTiles, attackTiles, warpTiles } = world?.getUnitMovement(unitId);
-        const arr: number[] = [];
+        const { movementTiles, attackTiles, warpTiles, targetableTiles } = world?.getUnitMovement(unitId);
+        const movementArray: number[] = [];
         movementTiles.forEach((comp) => {
-            arr.push(comp.x * 10 + comp.y);
+            movementArray.push(comp.x * 10 + comp.y);
         });
-        const arr2: number[] = [];
+        const attackableArray: number[] = [];
         attackTiles.forEach((comp) => {
-            arr2.push(comp.x * 10 + comp.y);
+            attackableArray.push(comp.x * 10 + comp.y);
         });
-        const arr3: number[] = [];
+        const warpableArray: number[] = [];
         warpTiles.forEach((comp) => {
-            arr3.push(comp.x * 10 + comp.y);
+            warpableArray.push(comp.x * 10 + comp.y);
         });
-        socket.emit("response preview movement", { movement: arr, attack: arr2, warpTiles: arr3 });
+
+        const targetableArray: number[] = [];
+        targetableTiles.forEach((comp) => {
+            targetableArray.push(comp.x * 10 + comp.y);
+        });
+
+        socket.emit("response preview movement", { movement: movementArray, attack: attackableArray, warpTiles: warpableArray, targetableTiles: targetableArray });
     }).on("request confirm movement", (payload: {
         unitId: string,
         x: number,
@@ -63,7 +76,7 @@ io.on("connection", (socket) => {
             });
         }
     }).on("request preview attack", console.log);
-    io.emit("turn start", debugWorld.startTurn());
+    // io.emit("turn start", );
 });
 
 app.use(cors());
