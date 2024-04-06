@@ -28,6 +28,18 @@ const teams = [{
         assist: "Pivot"
     },
     rarity: 5
+}, {
+    name: "Clarisse: Sniper in the Dark",
+    weapon: "Silver Bow",
+    skills: {
+        A: "Death Blow 3",
+        B: "Guard 3",
+        C: "Odd Atk Wave 3",
+        S: "Def +3",
+        special: "Astra",
+        assist: ""
+    },
+    rarity: 5
 }];
 
 debugWorld.initiate({

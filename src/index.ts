@@ -32,7 +32,7 @@ io.on("connection", (socket) => {
     socket.on("request preview movement", ({ worldId, unitId }: { worldId: string, unitId: string }) => {
         // const world = GAME_WORLDS[worldId];
         const world = debugWorld;
-        const { movementTiles, attackTiles, warpTiles, targetableTiles } = world?.getUnitMovement(unitId);
+        const { movementTiles, attackTiles, warpTiles, targetableTiles, effectiveness } = world?.getUnitMovement(unitId);
         const movementArray: number[] = [];
         movementTiles.forEach((comp) => {
             movementArray.push(comp.x * 10 + comp.y);
@@ -51,7 +51,13 @@ io.on("connection", (socket) => {
             targetableArray.push(comp.x * 10 + comp.y);
         });
 
-        socket.emit("response preview movement", { movement: movementArray, attack: attackableArray, warpTiles: warpableArray, targetableTiles: targetableArray });
+        socket.emit("response preview movement", {
+            movement: movementArray,
+            attack: attackableArray,
+            warpTiles: warpableArray,
+            targetableTiles: targetableArray,
+            effectiveness
+        });
     }).on("request confirm movement", (payload: {
         unitId: string,
         x: number,
@@ -92,7 +98,7 @@ const teamSchema = z.object({
     passivec: z.string().optional(),
 }).array();
 
-function transformHeroObject(obj: { id: string; components: any[] }) {
+function transformHeroObject(obj: { id: string; components: any[]; tags: string[] }) {
     const o: {
         [s: string]: any[];
     } = {};
@@ -102,6 +108,8 @@ function transformHeroObject(obj: { id: string; components: any[] }) {
         if (!o[type]) o[type] = [];
         if (rest) o[type].push(rest);
     }
+
+    o.tags = obj.tags;
 
     return o;
 }
