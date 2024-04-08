@@ -1,4 +1,5 @@
 import GameWorld from "feh-battles";
+import { Stat } from "feh-battles/dec/interfaces/types";
 
 const debugWorld = new GameWorld();
 
@@ -7,6 +8,8 @@ debugWorld.generateMap();
 const teams = [{
     name: "Corrin: Fateful Prince",
     weapon: "Yato",
+    boon: "atk" as Stat,
+    bane: "res" as Stat,
     skills: {
         A: "Atk/Res Bond 3",
         B: "Pass 3",
@@ -19,6 +22,8 @@ const teams = [{
 }, {
     name: "Shanna: Sprightly Flier",
     weapon: "Silver Lance",
+    boon: "hp" as Stat,
+    bane: "spd" as Stat,
     skills: {
         A: "",
         B: "",
@@ -31,6 +36,8 @@ const teams = [{
 }, {
     name: "Clarisse: Sniper in the Dark",
     weapon: "Silver Bow",
+    boon: "res" as Stat,
+    bane: "hp" as Stat,
     skills: {
         A: "Death Blow 3",
         B: "Guard 3",
