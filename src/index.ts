@@ -82,7 +82,6 @@ io.on("connection", (socket) => {
             });
         }
     }).on("request preview attack", console.log);
-    // io.emit("turn start", );
 });
 
 app.use(cors());
