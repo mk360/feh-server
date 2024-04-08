@@ -5,8 +5,6 @@ const debugWorld = new GameWorld();
 
 debugWorld.generateMap();
 
-//s
-
 const teams = [{
     name: "Corrin: Fateful Prince",
     weapon: "Yato",
