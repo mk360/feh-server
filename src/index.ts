@@ -73,6 +73,13 @@ io.on("connection", (socket) => {
                 x: newPosition.x,
                 y: newPosition.y,
             });
+            const jsonComponent = newPosition.getObject(true);
+            io.emit("update entity", {
+                unitId: jsonComponent.entity,
+                x: jsonComponent.x,
+                y: jsonComponent.y,
+                type: jsonComponent.type
+            });
         } else {
             const oldPosition = world.getEntity(payload.unitId)?.getOne("Position");
             io.emit("response confirm movement", {
