@@ -4,7 +4,7 @@
   "description": "",
   "main": "./index.ts",
   "scripts": {
-    "start": "nodemon ./lib --verbose --watch ./src --watch ../feh-battles"
+    "start": "nodemon"
   },
   "author": "",
   "license": "ISC",

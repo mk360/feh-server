@@ -5,18 +5,20 @@ const debugWorld = new GameWorld();
 
 debugWorld.generateMap();
 
+var a = "bonjour"
+
 const teams = [{
-    name: "Corrin: Fateful Prince",
-    weapon: "Yato",
-    boon: "atk" as Stat,
-    bane: "res" as Stat,
+    name: "Black Knight: Sinister General",
+    weapon: "Alondite",
+    boon: "res" as Stat,
+    bane: "hp" as Stat,
     skills: {
         A: "Atk/Res Bond 3",
-        B: "Pass 3",
+        B: "Guard 3",
         C: "Atk Ploy 3",
         S: "",
-        special: "Dragon Fang",
-        assist: "Rally Def"
+        special: "Black Luna",
+        assist: ""
     },
     rarity: 5
 }, {
@@ -41,9 +43,21 @@ const teams = [{
     skills: {
         A: "Death Blow 3",
         B: "Guard 3",
-        C: "Odd Atk Wave 3",
+        C: "Breath of Life 2",
         S: "Def +3",
-        special: "Astra",
+        special: "Iceberg",
+        assist: ""
+    },
+    rarity: 5
+}, {
+    name: "Reinhardt: Thunder's Fist",
+    weapon: "Dire Thunder",
+    skills: {
+        A: "",
+        B: "",
+        C: "Goad Cavalry 2",
+        S: "",
+        special: "Ignis",
         assist: ""
     },
     rarity: 5

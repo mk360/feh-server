@@ -1,5 +1,5 @@
 {
-    "watch": ["src", "../feh-battles/lib"],
-    "ext": "js,json",
+    "watch": ["src", "../feh-battles/src"],
+    "ext": "ts,json",
     "exec": "npx ts-node ./src/index.ts"
   }
