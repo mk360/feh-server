@@ -23,7 +23,7 @@ const teams = [{
     rarity: 5
 }, {
     name: "Shanna: Sprightly Flier",
-    weapon: "Silver Lance",
+    weapon: "Killer Lance+",
     boon: "hp" as Stat,
     bane: "spd" as Stat,
     skills: {
