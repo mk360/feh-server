@@ -27,7 +27,7 @@ const teams = [{
     boon: "hp" as Stat,
     bane: "spd" as Stat,
     skills: {
-        A: "",
+        A: "Death Blow 3",
         B: "",
         C: "Guidance 3",
         S: "",
