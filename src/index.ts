@@ -89,7 +89,23 @@ io.on("connection", (socket) => {
                 y: oldPosition!.y,
             });
         }
-    }).on("request preview attack", console.log);
+    }).on("request preview battle", (payload: { unit: string, temporaryCoordinates: { x: number, y: number }, target: string }) => {
+        const preview = debugWorld.previewAttack(payload.unit, payload.target, payload.temporaryCoordinates);
+        socket.emit("response preview battle", preview);
+    }).on("request freeze unit", (payload: {
+        unitId: string,
+        x: number,
+        y: number
+    }) => {
+        const world = debugWorld;
+        const newPosition = world.moveUnit(payload.unitId, payload);
+        io.emit("response confirm movement", {
+            valid: true,
+            unitId: payload.unitId,
+            x: newPosition.x,
+            y: newPosition.y,
+        });
+    });
 });
 
 app.use(cors());
