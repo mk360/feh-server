@@ -5,8 +5,6 @@ const debugWorld = new GameWorld();
 
 debugWorld.generateMap();
 
-var a = "bonjour"
-
 const teams = [{
     name: "Black Knight: Sinister General",
     weapon: "Alondite",
@@ -53,7 +51,7 @@ const teams = [{
     name: "Reinhardt: Thunder's Fist",
     weapon: "Dire Thunder",
     skills: {
-        A: "",
+        A: "HP +3",
         B: "",
         C: "Goad Cavalry 2",
         S: "",
