@@ -51,13 +51,16 @@ io.on("connection", (socket) => {
             targetableArray.push(comp.x * 10 + comp.y);
         });
 
+        const stats = debugWorld.getUnitMapStats(unitId);
+
         socket.emit("response preview movement", {
             movement: movementArray,
             attack: attackableArray,
             warpTiles: warpableArray,
             targetableTiles: targetableArray,
             effectiveness,
-            targetableEnemies
+            targetableEnemies,
+            ...stats
         });
     }).on("request confirm movement", (payload: {
         unitId: string,
