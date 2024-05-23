@@ -53,7 +53,7 @@ const teams = [{
     skills: {
         A: "HP +3",
         B: "",
-        C: "Goad Cavalry 2",
+        C: "Ward Cavalry",
         S: "",
         special: "Ignis",
         assist: ""

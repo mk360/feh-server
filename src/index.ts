@@ -60,6 +60,10 @@ io.on("connection", (socket) => {
             targetableTiles: targetableArray,
             effectiveness,
             targetableEnemies,
+        });
+
+        socket.emit("response unit map stats", {
+            unitId,
             ...stats
         });
     }).on("request confirm movement", (payload: {
