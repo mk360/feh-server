@@ -26,8 +26,8 @@ const teams = [{
     bane: "spd" as Stat,
     skills: {
         A: "Death Blow 3",
-        B: "",
-        C: "Guidance 3",
+        B: "Guidance 3",
+        C: "Atk Ploy 3",
         S: "",
         special: "Dragon Fang",
         assist: "Pivot"

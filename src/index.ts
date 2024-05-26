@@ -10,12 +10,12 @@ import shortid from "shortid";
 import { Server } from "socket.io";
 import debugWorld from "./debug-world";
 
-debugWorld.startTurn();
-
 /**
  * TODO:
  * implement basic combat preview response
  */
+
+debugWorld.startTurn();
 
 const PORT = 3600;
 
@@ -29,6 +29,7 @@ const io = new Server(server, {
 });
 
 io.on("connection", (socket) => {
+    // il faudra trouver un moyen de batch plusieurs responses de sockets
     socket.on("request preview movement", ({ worldId, unitId }: { worldId: string, unitId: string }) => {
         // const world = GAME_WORLDS[worldId];
         const world = debugWorld;
@@ -96,8 +97,8 @@ io.on("connection", (socket) => {
                 y: oldPosition!.y,
             });
         }
-    }).on("request preview battle", (payload: { unit: string, temporaryCoordinates: { x: number, y: number }, target: string }) => {
-        const preview = debugWorld.previewAttack(payload.unit, payload.target, payload.temporaryCoordinates);
+    }).on("request preview battle", (payload: { unit: string, temporaryCoordinates: { x: number, y: number }, x: number, y: number }) => {
+        const preview = debugWorld.previewAttack(payload.unit, { x: payload.x, y: payload.y }, payload.temporaryCoordinates);
         socket.emit("response preview battle", preview);
     }).on("request freeze unit", (payload: {
         unitId: string,
