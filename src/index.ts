@@ -97,8 +97,8 @@ io.on("connection", (socket) => {
                 y: oldPosition!.y,
             });
         }
-    }).on("request preview battle", (payload: { unit: string, temporaryCoordinates: { x: number, y: number }, x: number, y: number }) => {
-        const preview = debugWorld.previewAttack(payload.unit, { x: payload.x, y: payload.y }, payload.temporaryCoordinates);
+    }).on("request preview battle", (payload: { unit: string, x: number, y: number, position: { x: number, y: number } }) => {
+        const preview = debugWorld.previewAttack(payload.unit, { x: payload.x, y: payload.y }, payload.position);
         socket.emit("response preview battle", preview);
     }).on("request freeze unit", (payload: {
         unitId: string,
