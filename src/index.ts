@@ -75,6 +75,7 @@ io.on("connection", (socket) => {
         const world = debugWorld;
         if (world.previewUnitMovement(payload.unitId, payload)) {
             const newPosition = world.moveUnit(payload.unitId, payload);
+            world.endAction(payload.unitId);
             io.emit("response confirm movement", {
                 valid: true,
                 unitId: payload.unitId,
@@ -113,6 +114,8 @@ io.on("connection", (socket) => {
             x: newPosition.x,
             y: newPosition.y,
         });
+    }).on("request confirm combat", (payload: { unitId: string, x: number, y: number }) => {
+        const combatChanges = debugWorld.runCombat(payload.unitId, { x: payload.x, y: payload.y });
     });
 });
 
