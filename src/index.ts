@@ -33,8 +33,8 @@ io.on("connection", (socket) => {
     socket.on("request preview movement", ({ worldId, unitId }: { worldId: string, unitId: string }) => {
         // const world = GAME_WORLDS[worldId];
         const world = debugWorld;
-        const { movementTiles, attackTiles, warpTiles, targetableTiles, effectiveness, targetableEnemies } = world?.getUnitMovement(unitId);
-        const movementArray: number[] = [];
+        const { movementTiles, attackTiles, warpTiles, targetableTiles, effectiveness, assistTiles } = world?.getUnitMovement(unitId);
+        let movementArray: number[] = [];
         movementTiles.forEach((comp) => {
             movementArray.push(comp.x * 10 + comp.y);
         });
@@ -52,6 +52,13 @@ io.on("connection", (socket) => {
             targetableArray.push(comp.x * 10 + comp.y);
         });
 
+        const assistArray: number[] = [];
+        assistTiles.forEach((comp) => {
+            assistArray.push(comp.x * 10 + comp.y);
+        });
+
+        movementArray = movementArray.filter((t) => !assistArray.includes(t));
+
         const stats = debugWorld.getUnitMapStats(unitId);
 
         socket.emit("response preview movement", {
@@ -60,7 +67,7 @@ io.on("connection", (socket) => {
             warpTiles: warpableArray,
             targetableTiles: targetableArray,
             effectiveness,
-            targetableEnemies,
+            assistArray
         });
 
         socket.emit("response unit map stats", {
