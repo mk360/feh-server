@@ -122,7 +122,8 @@ io.on("connection", (socket) => {
             y: newPosition.y,
         });
     }).on("request confirm combat", (payload: { unitId: string, x: number, y: number }) => {
-        const combatChanges = debugWorld.runCombat(payload.unitId, { x: payload.x, y: payload.y });
+        const combatActions = debugWorld.runCombat(payload.unitId, { x: payload.x, y: payload.y });
+        io.emit("response confirm combat", combatActions);
     });
 });
 
