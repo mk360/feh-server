@@ -1,7 +1,11 @@
 import GameWorld from "feh-battles";
 import { Stat } from "feh-battles/dec/interfaces/types";
 
-const debugWorld = new GameWorld();
+const debugWorld = new GameWorld({
+    team1: "bonjour",
+    team2: "petite-fille",
+    trackChanges: true
+});
 
 debugWorld.generateMap();
 

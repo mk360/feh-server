@@ -15,8 +15,6 @@ import debugWorld from "./debug-world";
  * implement basic combat preview response
  */
 
-debugWorld.startTurn();
-
 const PORT = 3600;
 
 const app = express();
@@ -29,6 +27,9 @@ const io = new Server(server, {
 });
 
 io.on("connection", (socket) => {
+    socket.on("ready", () => {
+        io.emit("response", debugWorld.startTurn());
+    });
     // il faudra trouver un moyen de batch plusieurs responses de sockets
     socket.on("request preview movement", ({ worldId, unitId }: { worldId: string, unitId: string }) => {
         // const world = GAME_WORLDS[worldId];
@@ -187,42 +188,42 @@ app.post("/team/", validateRequest({
         team2: teamSchema
     }).strict()
 }), (req, res) => {
-    const world = new GameWorld();
-    world.initiate({
-        team1: req.body.team1.map((i) => {
-            return {
-                name: i.name,
-                weapon: i.weapon!,
-                skills: {
-                    assist: i.assist!,
-                    special: i.special!,
-                    A: i.passivea!,
-                    B: i.passiveb!,
-                    C: i.passivec!,
-                    S: "",
-                },
-                rarity: 5,
-            }
-        }),
-        team2: req.body.team2.map((i) => {
-            return {
-                name: i.name,
-                weapon: i.weapon!,
-                skills: {
-                    assist: i.assist!,
-                    special: i.special!,
-                    A: i.passivea!,
-                    B: i.passiveb!,
-                    C: i.passivec!,
-                    S: "",
-                },
-                rarity: 5,
-            }
-        }),
-    });
-    const id = shortid();
-    GAME_WORLDS[id] = world;
-    res.send(id);
+    // const world = new GameWorld();
+    // world.initiate({
+    //     team1: req.body.team1.map((i) => {
+    //         return {
+    //             name: i.name,
+    //             weapon: i.weapon!,
+    //             skills: {
+    //                 assist: i.assist!,
+    //                 special: i.special!,
+    //                 A: i.passivea!,
+    //                 B: i.passiveb!,
+    //                 C: i.passivec!,
+    //                 S: "",
+    //             },
+    //             rarity: 5,
+    //         }
+    //     }),
+    //     team2: req.body.team2.map((i) => {
+    //         return {
+    //             name: i.name,
+    //             weapon: i.weapon!,
+    //             skills: {
+    //                 assist: i.assist!,
+    //                 special: i.special!,
+    //                 A: i.passivea!,
+    //                 B: i.passiveb!,
+    //                 C: i.passivec!,
+    //                 S: "",
+    //             },
+    //             rarity: 5,
+    //         }
+    //     }),
+    // });
+    // const id = shortid();
+    // GAME_WORLDS[id] = world;
+    // res.send(id);
 });
 
 server.listen(PORT, () => {
