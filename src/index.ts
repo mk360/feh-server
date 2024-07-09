@@ -28,7 +28,9 @@ const io = new Server(server, {
 
 io.on("connection", (socket) => {
     socket.on("ready", () => {
-        io.emit("response", debugWorld.startTurn());
+        const turnStart = debugWorld.startTurn();
+        console.log(turnStart);
+        io.emit("response", turnStart);
     });
     // il faudra trouver un moyen de batch plusieurs responses de sockets
     socket.on("request preview movement", ({ worldId, unitId }: { worldId: string, unitId: string }) => {
