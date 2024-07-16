@@ -30,7 +30,7 @@ const teams = [{
     bane: "spd" as Stat,
     skills: {
         A: "Death Blow 3",
-        B: "Guidance 3",
+        B: "Odd Atk Wave 3",
         C: "Atk Ploy 3",
         S: "",
         special: "Dragon Fang",
@@ -40,8 +40,8 @@ const teams = [{
 }, {
     name: "Clarisse: Sniper in the Dark",
     weapon: "Silver Bow",
-    boon: "res" as Stat,
-    bane: "hp" as Stat,
+    // boon: "res" as Stat,
+    // bane: "hp" as Stat,
     skills: {
         A: "Death Blow 3",
         B: "Guard 3",

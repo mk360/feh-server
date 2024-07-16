@@ -29,7 +29,6 @@ const io = new Server(server, {
 io.on("connection", (socket) => {
     socket.on("ready", () => {
         const turnStart = debugWorld.startTurn();
-        console.log(turnStart);
         io.emit("response", turnStart);
     });
     // il faudra trouver un moyen de batch plusieurs responses de sockets
@@ -127,6 +126,9 @@ io.on("connection", (socket) => {
     }).on("request confirm combat", (payload: { unitId: string, x: number, y: number }) => {
         const combatActions = debugWorld.runCombat(payload.unitId, { x: payload.x, y: payload.y });
         io.emit("response confirm combat", combatActions);
+    }).on("request confirm assist", (payload: { source: string, target: string, sourceCoordinates: { x: number, y: number } }) => {
+        const assistActions = debugWorld.runAssist(payload.source, payload.target, payload.sourceCoordinates);
+        io.emit("response", assistActions);
     });
 });
 
