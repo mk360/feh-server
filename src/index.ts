@@ -83,21 +83,13 @@ io.on("connection", (socket) => {
     }) => {
         const world = debugWorld;
         if (world.previewUnitMovement(payload.unitId, payload)) {
-            const newPosition = world.moveUnit(payload.unitId, payload);
-            world.endAction(payload.unitId);
+            world.moveUnit(payload.unitId, payload);
+            const actionEnd = world.endAction(payload.unitId);
             io.emit("response confirm movement", {
-                valid: true,
                 unitId: payload.unitId,
-                x: newPosition.x,
-                y: newPosition.y,
+                ...payload
             });
-            const jsonComponent = newPosition.getObject(true);
-            io.emit("update entity", {
-                unitId: jsonComponent.entity,
-                x: jsonComponent.x,
-                y: jsonComponent.y,
-                type: jsonComponent.type
-            });
+            io.emit("response", actionEnd);
         } else {
             const oldPosition = world.getEntity(payload.unitId)?.getOne("Position");
             io.emit("response confirm movement", {
@@ -116,15 +108,17 @@ io.on("connection", (socket) => {
         y: number
     }) => {
         const world = debugWorld;
-        const newPosition = world.moveUnit(payload.unitId, payload);
+        world.moveUnit(payload.unitId, payload);
+        const endAction = world.endAction(payload.unitId);
         io.emit("response confirm movement", {
             valid: true,
             unitId: payload.unitId,
-            x: newPosition.x,
-            y: newPosition.y,
+            x: payload.x,
+            y: payload.y,
         });
-    }).on("request confirm combat", (payload: { unitId: string, x: number, y: number }) => {
-        const combatActions = debugWorld.runCombat(payload.unitId, { x: payload.x, y: payload.y });
+        io.emit("response", endAction);
+    }).on("request confirm combat", (payload: { unitId: string, x: number, y: number, attackerCoordinates: { x: number, y: number } }) => {
+        const combatActions = debugWorld.runCombat(payload.unitId, payload.attackerCoordinates, { x: payload.x, y: payload.y });
         io.emit("response confirm combat", combatActions);
     }).on("request confirm assist", (payload: { source: string, target: string, sourceCoordinates: { x: number, y: number } }) => {
         const assistActions = debugWorld.runAssist(payload.source, payload.target, payload.sourceCoordinates);
