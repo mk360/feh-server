@@ -90,6 +90,15 @@ io.on("connection", (socket) => {
                 ...payload
             });
             io.emit("response", actionEnd);
+            io.emit("update-entity", {
+                unitId: payload.unitId,
+                data: {
+                    Position: [{
+                        x: payload.x,
+                        y: payload.y,
+                    }]
+                }
+            });
         } else {
             const oldPosition = world.getEntity(payload.unitId)?.getOne("Position");
             io.emit("response confirm movement", {
