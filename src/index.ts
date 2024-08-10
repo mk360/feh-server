@@ -125,8 +125,8 @@ io.on("connection", (socket) => {
             y: payload.y,
         });
         io.emit("response", endAction);
-    }).on("request confirm combat", (payload: { unitId: string, x: number, y: number, attackerCoordinates: { x: number, y: number } }) => {
-        const combatActions = debugWorld.runCombat(payload.unitId, payload.attackerCoordinates, { x: payload.x, y: payload.y });
+    }).on("request confirm combat", (payload: { unitId: string, x: number, y: number, attackerCoordinates: { x: number, y: number }, path: { x: number, y: number }[] }) => {
+        const combatActions = debugWorld.runCombat(payload.unitId, payload.attackerCoordinates, { x: payload.x, y: payload.y }, payload.path);
         io.emit("response confirm combat", combatActions);
     }).on("request confirm assist", (payload: { source: string, target: string, sourceCoordinates: { x: number, y: number } }) => {
         const assistActions = debugWorld.runAssist(payload.source, payload.target, payload.sourceCoordinates);
