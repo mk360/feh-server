@@ -83,8 +83,7 @@ io.on("connection", (socket) => {
     }) => {
         const world = debugWorld;
         if (world.previewUnitMovement(payload.unitId, payload)) {
-            world.moveUnit(payload.unitId, payload);
-            const actionEnd = world.endAction(payload.unitId);
+            const actionEnd = world.moveUnit(payload.unitId, payload, true);
             io.emit("response confirm movement", {
                 unitId: payload.unitId,
                 ...payload
@@ -117,7 +116,7 @@ io.on("connection", (socket) => {
         y: number
     }) => {
         const world = debugWorld;
-        world.moveUnit(payload.unitId, payload);
+        world.moveUnit(payload.unitId, payload, true);
         const endAction = world.endAction(payload.unitId);
         io.emit("response confirm movement", {
             valid: true,
