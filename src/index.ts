@@ -26,11 +26,31 @@ const io = new Server(server, {
     },
 });
 
+function parseEntities(world: GameWorld) {
+    const entities = world.getEntities("Name");
+    const entitiesDict: {
+        [k: string]: {
+            [k: string]: any
+        }
+    } = {};
+
+    entities.forEach((entity) => {
+        const entityObject = entity.getObject(false);
+        entitiesDict[entity.id] = {
+            tags: Array.from(entity.tags),
+            components: Object.groupBy(entityObject.components, (component) => component.type)
+        };
+    });
+
+    return entitiesDict;
+};
+
 io.on("connection", (socket) => {
     socket.on("ready", () => {
         const turnStart = debugWorld.startTurn();
-        io.emit("response", turnStart);
+        socket.emit("response", turnStart);
     });
+
     // il faudra trouver un moyen de batch plusieurs responses de sockets
     socket.on("request preview movement", ({ worldId, unitId }: { worldId: string, unitId: string }) => {
         // const world = GAME_WORLDS[worldId];
@@ -89,15 +109,9 @@ io.on("connection", (socket) => {
                 ...payload
             });
             io.emit("response", actionEnd);
-            io.emit("update-entity", {
-                unitId: payload.unitId,
-                data: {
-                    Position: [{
-                        x: payload.x,
-                        y: payload.y,
-                    }]
-                }
-            });
+
+            const newState = parseEntities(debugWorld);
+            io.emit("update-entities", newState);
         } else {
             const oldPosition = world.getEntity(payload.unitId)?.getOne("Position");
             io.emit("response confirm movement", {
@@ -131,6 +145,9 @@ io.on("connection", (socket) => {
     }).on("request confirm assist", (payload: { source: string, target: string, sourceCoordinates: { x: number, y: number } }) => {
         const assistActions = debugWorld.runAssist(payload.source, payload.target, payload.sourceCoordinates);
         io.emit("response", assistActions);
+    }).on("request update", () => {
+        const updatedEntities = parseEntities(debugWorld);
+        io.emit("update-entities", updatedEntities);
     });
 });
 
@@ -147,40 +164,15 @@ const teamSchema = z.object({
     passivec: z.string().optional(),
 }).array();
 
-function transformHeroObject(obj: { id: string; components: any[]; tags: string[] }) {
-    const o: {
-        [s: string]: any[];
-    } = {};
-
-    for (let component of obj.components) {
-        const { type, ...rest } = component;
-        if (!o[type]) o[type] = [];
-        if (rest) o[type].push(rest);
-    }
-
-    o.tags = obj.tags;
-
-    return o;
-}
-
 app.get("/worlds/:id", (req, res) => {
     process.env.NODE_ENV = "development";
     const world = process.env.NODE_ENV === "development" ? debugWorld : GAME_WORLDS[req.params.id];
     if (world) {
-        const units = Array.from(world.getEntities("Name"));
+        const heroes = parseEntities(world);
         res.status(200);
-        const heroStore: {
-            [k: string]: {
-                [s: string]: any[]
-            }
-        } = {};
-        for (let unit of units) {
-            const objectData = unit.getObject(false);
-            heroStore[objectData.id] = transformHeroObject(objectData);
-        }
         res.send({
             mapId: world.state.mapId,
-            heroes: heroStore
+            heroes
         });
     } else {
         res.status(404);
