@@ -6,9 +6,19 @@ import cors from "cors";
 import { validateRequest } from "zod-express-middleware";
 import { z } from "zod";
 import GAME_WORLDS from "./game-worlds";
-import shortid from "shortid";
 import { Server } from "socket.io";
 import debugWorld from "./debug-world";
+
+function groupBy<T>(iterable: T[], filter: (element: T) => string) {
+    const group: { [k: string]: T[] } = {};
+    for (let item of iterable) {
+        const key = filter(item);
+        if (!group[key]) group[key] = [];
+        group[key].push(item);
+    }
+
+    return group;
+}
 
 /**
  * TODO:
@@ -38,7 +48,7 @@ function parseEntities(world: GameWorld) {
         const entityObject = entity.getObject(false);
         entitiesDict[entity.id] = {
             tags: Array.from(entity.tags),
-            components: Object.groupBy(entityObject.components, (component) => component.type)
+            components: groupBy(entityObject.components, (component) => component.type)
         };
     });
 
@@ -122,7 +132,7 @@ io.on("connection", (socket) => {
             });
         }
     }).on("request preview battle", (payload: { unit: string, x: number, y: number, position: { x: number, y: number } }) => {
-        const preview = debugWorld.previewAttack(payload.unit, { x: payload.x, y: payload.y }, payload.position);
+        const preview = debugWorld.previewCombat(payload.unit, { x: payload.x, y: payload.y }, payload.position);
         socket.emit("response preview battle", preview);
     }).on("request freeze unit", (payload: {
         unitId: string,
