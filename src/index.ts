@@ -8,6 +8,7 @@ import { z } from "zod";
 import GAME_WORLDS from "./game-worlds";
 import { Server } from "socket.io";
 import debugWorld from "./debug-world";
+import shortid from "shortid";
 
 function groupBy<T>(iterable: T[], filter: (element: T) => string) {
     const group: { [k: string]: T[] } = {};
@@ -20,14 +21,10 @@ function groupBy<T>(iterable: T[], filter: (element: T) => string) {
     return group;
 }
 
-/**
- * TODO:
- * implement basic combat preview response
- */
-
 const PORT = 3600;
 
 const app = express();
+const roomId = shortid();
 
 const server = createServer(app);
 const io = new Server(server, {
@@ -56,6 +53,23 @@ function parseEntities(world: GameWorld) {
 };
 
 io.on("connection", (socket) => {
+    socket.join(roomId);
+    socket.on("loading", () => {
+        io.in(roomId).fetchSockets().then((tableau) => {
+            const mappedSockets = tableau.map((i) => i.id);
+            const socketIndex = mappedSockets.indexOf(socket.id); // TODO: demain, "mémoriser" les socket ids de chaque joueur
+            // pour permettre aux gens de sortir, revenir, et reprendre leur partie
+            const obj = {
+                ids: ["bonjour", "petite-fille"],
+                id: "",
+            };
+
+            if (socketIndex <= 1) {
+                obj.id = ["bonjour", "petite-fille"][socketIndex];
+            }
+            socket.emit("allow-control", obj);
+        });
+    });
     socket.on("ready", () => {
         const turnStart = debugWorld.startTurn();
         socket.emit("response", turnStart);
