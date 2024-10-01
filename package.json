@@ -10,6 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
     "dotenv": "^16.3.2",
     "express": "^4.18.2",
     "feh-battles": "file:../feh-battles",
@@ -24,7 +25,6 @@
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/shortid": "^0.0.32",
-    "cors": "^2.8.5",
     "nodemon": "^3.0.3",
     "ts-node": "^10.9.2",
     "typescript": "^5.4.5"
