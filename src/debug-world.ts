@@ -9,23 +9,23 @@ const debugWorld = new GameWorld({
 
 debugWorld.generateMap();
 
-const teams = [{
-    name: "Black Knight: Sinister General",
-    weapon: "Alondite",
-    boon: "res" as Stat,
+const team1 = [{
+    name: "Chrom: Exalted Prince",
+    weapon: "Falchion (Awakening)",
+    boon: "def" as Stat,
     bane: "hp" as Stat,
     skills: {
-        A: "Atk/Res Bond 3",
-        B: "Guard 3",
+        A: "Brazen Def 3",
+        B: "Renewal 1",
         C: "Atk Ploy 3",
         S: "",
-        special: "Black Luna",
-        assist: ""
+        special: "Aether",
+        assist: "Reposition"
     },
     rarity: 5
 }, {
     name: "Shanna: Sprightly Flier",
-    weapon: "Killer Lance+",
+    weapon: "Shanna's Lance",
     boon: "hp" as Stat,
     bane: "spd" as Stat,
     skills: {
@@ -39,7 +39,7 @@ const teams = [{
     rarity: 5
 }, {
     name: "Clarisse: Sniper in the Dark",
-    weapon: "Silver Bow",
+    weapon: "Sniper's Bow",
     // boon: "res" as Stat,
     // bane: "hp" as Stat,
     skills: {
@@ -65,9 +65,59 @@ const teams = [{
     rarity: 5
 }];
 
+const team2 = [{
+    name: "Corrin: Fateful Princess",
+    weapon: "Gloom Breath",
+    skills: {
+        assist: "Rally Speed",
+        special: "Pavise",
+        A: "Spd/Def Bond 3",
+        B: "Seal Res 3",
+        C: "Fortify Dragons",
+        S: ""
+    },
+    rarity: 5
+}, {
+    name: "Fae: Divine Dragon",
+    weapon: "Eternal Breath",
+    skills: {
+        assist: "Shove",
+        special: "Aegis",
+        A: "Death Blow 3",
+        B: "Desperation 3",
+        C: "Drive Atk 2",
+        S: "",
+    },
+    rarity: 5,
+}, {
+    name: "Gray: Wry Comrade",
+    weapon: "Zanbato+",
+    skills: {
+        assist: "Shove",
+        special: "Dragon Fang",
+        A: "Triangle Adept 3",
+        B: "Wrath 3",
+        C: "Spur Atk 3",
+        S: "",
+    },
+    rarity: 5,
+}, {
+    name: "Leo: Sorcerous Prince",
+    weapon: "Brynhildr",
+    skills: {
+        assist: "Rally Atk",
+        special: "Glacies",
+        A: "Fortress Res 3",
+        B: "Watersweep 3",
+        C: "Infantry Pulse 3",
+        S: ""
+    },
+    rarity: 5
+}]
+
 debugWorld.initiate({
-    team1: teams,
-    team2: teams,
+    team1: team2,
+    team2: team1,
 });
 
 export default debugWorld;
