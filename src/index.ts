@@ -21,6 +21,11 @@ function groupBy<T>(iterable: T[], filter: (element: T) => string) {
     return group;
 }
 
+interface MapCoords {
+    x: number;
+    y: number;
+}
+
 const PORT = 3600;
 
 const app = express();
@@ -113,7 +118,8 @@ io.on("connection", (socket) => {
             warpTiles: warpableArray,
             targetableTiles: targetableArray,
             effectiveness,
-            assistArray
+            assistArray,
+            unitId
         });
 
         socket.emit("response unit map stats", {
@@ -145,7 +151,7 @@ io.on("connection", (socket) => {
                 y: oldPosition!.y,
             });
         }
-    }).on("request preview battle", (payload: { unit: string, x: number, y: number, position: { x: number, y: number } }) => {
+    }).on("request preview battle", (payload: { unit: string, x: number, y: number, position: MapCoords }) => {
         const preview = debugWorld.previewCombat(payload.unit, { x: payload.x, y: payload.y }, payload.position);
         socket.emit("response preview battle", preview);
     }).on("request freeze unit", (payload: {
@@ -163,15 +169,20 @@ io.on("connection", (socket) => {
             y: payload.y,
         });
         io.emit("response", endAction);
-    }).on("request confirm combat", (payload: { unitId: string, x: number, y: number, attackerCoordinates: { x: number, y: number }, path: { x: number, y: number }[] }) => {
+    }).on("request confirm combat", (payload: { unitId: string, x: number, y: number, attackerCoordinates: MapCoords, path: MapCoords[] }) => {
         const combatActions = debugWorld.runCombat(payload.unitId, payload.attackerCoordinates, { x: payload.x, y: payload.y }, payload.path);
         io.emit("response", combatActions);
-    }).on("request confirm assist", (payload: { source: string, target: string, sourceCoordinates: { x: number, y: number } }) => {
+    }).on("request preview assist", (payload: { source: string, sourceCoordinates: MapCoords, targetCoordinates: MapCoords }) => {
+        const preview = debugWorld.previewAssist(payload.source, payload.targetCoordinates, payload.sourceCoordinates);
+    }).on("request confirm assist", (payload: { source: string, target: string, sourceCoordinates: MapCoords }) => {
         const assistActions = debugWorld.runAssist(payload.source, payload.target, payload.sourceCoordinates);
         io.emit("response", assistActions);
     }).on("request update", () => {
         const updatedEntities = parseEntities(debugWorld);
         io.emit("update-entities", updatedEntities);
+    }).on("request end turn", () => {
+        const newTurn = debugWorld.startTurn();
+        io.to(roomId).emit("response", newTurn);
     });
 });
 
