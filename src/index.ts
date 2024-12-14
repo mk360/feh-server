@@ -26,7 +26,7 @@ interface MapCoords {
     y: number;
 }
 
-const PORT = 3600;
+const PORT = 3800;
 
 const app = express();
 const roomId = shortid();
@@ -77,7 +77,7 @@ io.on("connection", (socket) => {
     });
     socket.on("ready", () => {
         const turnStart = debugWorld.startTurn();
-        socket.emit("response", turnStart);
+        io.emit("response", turnStart);
     });
 
     // il faudra trouver un moyen de batch plusieurs responses de sockets
@@ -174,9 +174,12 @@ io.on("connection", (socket) => {
         io.emit("response", combatActions);
     }).on("request preview assist", (payload: { source: string, sourceCoordinates: MapCoords, targetCoordinates: MapCoords }) => {
         const preview = debugWorld.previewAssist(payload.source, payload.targetCoordinates, payload.sourceCoordinates);
-    }).on("request confirm assist", (payload: { source: string, target: string, sourceCoordinates: MapCoords }) => {
-        const assistActions = debugWorld.runAssist(payload.source, payload.target, payload.sourceCoordinates);
+        socket.emit("response preview assist", preview);
+    }).on("request confirm assist", (payload: { source: string, targetCoordinates: MapCoords, sourceCoordinates: MapCoords }) => {
+        const assistActions = debugWorld.runAssist(payload.source, payload.targetCoordinates, payload.sourceCoordinates);
         io.emit("response", assistActions);
+    }).on("request danger zone", (payload: { sideId: string }) => {
+
     }).on("request update", () => {
         const updatedEntities = parseEntities(debugWorld);
         io.emit("update-entities", updatedEntities);

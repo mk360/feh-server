@@ -74,7 +74,7 @@ const team2 = [{
         A: "Spd/Def Bond 3",
         B: "Seal Res 3",
         C: "Fortify Dragons",
-        S: ""
+        S: "Atk/Res Bond 3"
     },
     rarity: 5
 }, {
@@ -94,7 +94,7 @@ const team2 = [{
     weapon: "Zanbato+",
     skills: {
         assist: "Shove",
-        special: "Dragon Fang",
+        special: "Rising Flame",
         A: "Triangle Adept 3",
         B: "Wrath 3",
         C: "Spur Atk 3",
@@ -105,7 +105,7 @@ const team2 = [{
     name: "Leo: Sorcerous Prince",
     weapon: "Brynhildr",
     skills: {
-        assist: "Rally Atk",
+        assist: "Swap",
         special: "Glacies",
         A: "Fortress Res 3",
         B: "Watersweep 3",
