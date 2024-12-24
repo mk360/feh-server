@@ -8,7 +8,8 @@ import { z } from "zod";
 import GAME_WORLDS from "./game-worlds";
 import { Server } from "socket.io";
 import debugWorld from "./debug-world";
-import shortid from "shortid";
+import shortid from "short-unique-id";
+const uid = new shortid({ length: 10 });
 
 function groupBy<T>(iterable: T[], filter: (element: T) => string) {
     const group: { [k: string]: T[] } = {};
@@ -29,7 +30,7 @@ interface MapCoords {
 const PORT = 3800;
 
 const app = express();
-const roomId = shortid();
+const roomId = uid.randomUUID();
 
 const server = createServer(app);
 const io = new Server(server, {
