@@ -152,8 +152,8 @@ io.on("connection", (socket) => {
                 y: oldPosition!.y,
             });
         }
-    }).on("request preview battle", (payload: { unit: string, x: number, y: number, position: MapCoords }) => {
-        const preview = debugWorld.previewCombat(payload.unit, { x: payload.x, y: payload.y }, payload.position);
+    }).on("request preview battle", (payload: { unit: string, x: number, y: number, position: MapCoords, path: MapCoords[] }) => {
+        const preview = debugWorld.previewCombat(payload.unit, { x: payload.x, y: payload.y }, payload.position, payload.path);
         socket.emit("response preview battle", preview);
     }).on("request freeze unit", (payload: {
         unitId: string,
