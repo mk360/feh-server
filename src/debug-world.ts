@@ -1,15 +1,6 @@
-import GameWorld from "feh-battles";
 import { Stat } from "feh-battles/dec/interfaces/types";
 
-const debugWorld = new GameWorld({
-    team1: "bonjour",
-    team2: "petite-fille",
-    trackChanges: true
-});
-
-debugWorld.generateMap();
-
-const team1 = [{
+export const team1 = [{
     name: "Chrom: Exalted Prince",
     weapon: "Falchion (Awakening)",
     boon: "def" as Stat,
@@ -65,11 +56,11 @@ const team1 = [{
     rarity: 5
 }];
 
-const team2 = [{
+export const team2 = [{
     name: "Corrin: Fateful Princess",
     weapon: "Gloom Breath",
     skills: {
-        assist: "Rally Speed",
+        assist: "",
         special: "Pavise",
         A: "Spd/Def Bond 3",
         B: "Seal Res 3",
@@ -81,7 +72,7 @@ const team2 = [{
     name: "Fae: Divine Dragon",
     weapon: "Eternal Breath",
     skills: {
-        assist: "Shove",
+        assist: "",
         special: "Aegis",
         A: "Death Blow 3",
         B: "Desperation 3",
@@ -93,7 +84,7 @@ const team2 = [{
     name: "Gray: Wry Comrade",
     weapon: "Zanbato+",
     skills: {
-        assist: "Shove",
+        assist: "",
         special: "Rising Flame",
         A: "Triangle Adept 3",
         B: "Wrath 3",
@@ -114,10 +105,3 @@ const team2 = [{
     },
     rarity: 5
 }]
-
-debugWorld.initiate({
-    team1: team2,
-    team2: team1,
-});
-
-export default debugWorld;

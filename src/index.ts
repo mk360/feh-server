@@ -5,9 +5,8 @@ import bodyParser from "body-parser";
 import cors from "cors";
 import { validateRequest } from "zod-express-middleware";
 import { z } from "zod";
-import GAME_WORLDS from "./game-worlds";
 import { Server } from "socket.io";
-import debugWorld from "./debug-world";
+import { team1, team2 } from "./debug-world";
 import shortid from "short-unique-id";
 const uid = new shortid({ length: 10 });
 
@@ -30,7 +29,6 @@ interface MapCoords {
 const PORT = 3800;
 
 const app = express();
-const roomId = uid.randomUUID();
 
 const server = createServer(app);
 const io = new Server(server, {
@@ -58,33 +56,67 @@ function parseEntities(world: GameWorld) {
     return entitiesDict;
 };
 
-io.on("connection", (socket) => {
-    socket.join(roomId);
-    socket.on("loading", () => {
-        io.in(roomId).fetchSockets().then((tableau) => {
-            const mappedSockets = tableau.map((i) => i.id);
-            const socketIndex = mappedSockets.indexOf(socket.id); // TODO: demain, "mémoriser" les socket ids de chaque joueur
-            // pour permettre aux gens de sortir, revenir, et reprendre leur partie
-            const obj = {
-                ids: ["bonjour", "petite-fille"],
-                id: "",
-            };
+const GAME_WORLDS_MAP: { [k: string]: GameWorld } = {};
 
-            if (socketIndex <= 1) {
-                obj.id = ["bonjour", "petite-fille"][socketIndex];
-            }
-            socket.emit("allow-control", obj);
+const GAME_WORLDS_ID_MAP: { [k: string]: GameWorld } = {};
+
+const UUID_BY_ID: { [k: string]: string } = {};
+
+const SOCKETS_BY_ROOM: { [k: string]: string[] } = {};
+
+io.on("connection", (socket) => {
+    socket.on("loading-complete", ({ uuid }) => {
+        const gameWorld = GAME_WORLDS_MAP[uuid];
+        const teamIds = gameWorld.state.teamIds;
+        socket.emit("allow-control", ({ ids: teamIds, id: uuid }));
+    });
+
+    socket.on("create-session", ({ uuid }) => {
+        const newId = uid.randomUUID();
+        socket.join(newId);
+        UUID_BY_ID[socket.id] = uuid;
+        SOCKETS_BY_ROOM[newId] = [uuid];
+        socket.emit("confirm", "Your session has been created. Please share the ID <code>" + newId + "</code> with your opponent.");
+    }).on("disconnect", () => {
+        delete UUID_BY_ID[socket.id];
+    }).on("join", ({ roomId, uuid }) => {
+        if (!SOCKETS_BY_ROOM[roomId]) {
+            socket.emit("error", "This session does not exist.");
+            return;
+        }
+        if (SOCKETS_BY_ROOM[roomId].length >= 2) {
+            socket.emit("error", "This session is full.");
+            return;
+        }
+        UUID_BY_ID[socket.id] = uuid;
+        SOCKETS_BY_ROOM[roomId].push(uuid);
+        socket.join(roomId);
+        io.in(roomId).fetchSockets().then(() => {
+            const newWorld = new GameWorld({
+                team1: SOCKETS_BY_ROOM[roomId][0],
+                team2: SOCKETS_BY_ROOM[roomId][1],
+                trackChanges: true,
+            });
+            GAME_WORLDS_ID_MAP[newWorld.id] = newWorld;
+            newWorld.generateMap();
+            newWorld.initiate({
+                team1: team1,
+                team2: team2,
+            });
+            newWorld.startTurn();
+            GAME_WORLDS_MAP[SOCKETS_BY_ROOM[roomId][0]] = newWorld;
+            GAME_WORLDS_MAP[SOCKETS_BY_ROOM[roomId][1]] = newWorld;
+            io.in(roomId).emit("join-session", newWorld.id);
         });
     });
-    socket.on("ready", () => {
-        const turnStart = debugWorld.startTurn();
-        io.emit("response", turnStart);
+    socket.on("ready", ({ uuid }) => {
+        const world = GAME_WORLDS_MAP[uuid];
+        socket.emit("response", world.state.lastChangeSequence);
     });
 
     // il faudra trouver un moyen de batch plusieurs responses de sockets
-    socket.on("request preview movement", ({ worldId, unitId }: { worldId: string, unitId: string }) => {
-        // const world = GAME_WORLDS[worldId];
-        const world = debugWorld;
+    socket.on("request preview movement", ({ uuid, unitId }: { uuid: string, unitId: string }) => {
+        const world = GAME_WORLDS_MAP[uuid];
         const { movementTiles, attackTiles, warpTiles, targetableTiles, effectiveness, assistTiles } = world?.getUnitMovement(unitId);
         let movementArray: number[] = [];
         movementTiles.forEach((comp) => {
@@ -111,7 +143,7 @@ io.on("connection", (socket) => {
 
         movementArray = movementArray.filter((t) => !assistArray.includes(t));
 
-        const stats = debugWorld.getUnitMapStats(unitId);
+        const stats = world.getUnitMapStats(unitId);
 
         socket.emit("response preview movement", {
             movement: movementArray,
@@ -129,10 +161,11 @@ io.on("connection", (socket) => {
         });
     }).on("request confirm movement", (payload: {
         unitId: string,
+        uuid: string,
         x: number,
         y: number
     }) => {
-        const world = debugWorld;
+        const world = GAME_WORLDS_MAP[payload.uuid];
         if (world.previewUnitMovement(payload.unitId, payload)) {
             const actionEnd = world.moveUnit(payload.unitId, payload, true);
             io.emit("response confirm movement", {
@@ -141,7 +174,7 @@ io.on("connection", (socket) => {
             });
             io.emit("response", actionEnd);
 
-            const newState = parseEntities(debugWorld);
+            const newState = parseEntities(world);
             io.emit("update-entities", newState);
         } else {
             const oldPosition = world.getEntity(payload.unitId)?.getOne("Position");
@@ -152,15 +185,17 @@ io.on("connection", (socket) => {
                 y: oldPosition!.y,
             });
         }
-    }).on("request preview battle", (payload: { unit: string, x: number, y: number, position: MapCoords, path: MapCoords[] }) => {
-        const preview = debugWorld.previewCombat(payload.unit, { x: payload.x, y: payload.y }, payload.position, payload.path);
+    }).on("request preview battle", (payload: { unit: string, uuid: string, x: number, y: number, position: MapCoords, path: MapCoords[] }) => {
+        const gameWorld = GAME_WORLDS_MAP[payload.uuid];
+        const preview = gameWorld.previewCombat(payload.unit, { x: payload.x, y: payload.y }, payload.position, payload.path);
         socket.emit("response preview battle", preview);
     }).on("request freeze unit", (payload: {
         unitId: string,
         x: number,
+        uuid: string,
         y: number
     }) => {
-        const world = debugWorld;
+        const world = GAME_WORLDS_MAP[payload.uuid];
         world.moveUnit(payload.unitId, payload, true);
         const endAction = world.endAction(payload.unitId);
         io.emit("response confirm movement", {
@@ -170,23 +205,28 @@ io.on("connection", (socket) => {
             y: payload.y,
         });
         io.emit("response", endAction);
-    }).on("request confirm combat", (payload: { unitId: string, x: number, y: number, attackerCoordinates: MapCoords, path: MapCoords[] }) => {
-        const combatActions = debugWorld.runCombat(payload.unitId, payload.attackerCoordinates, { x: payload.x, y: payload.y }, payload.path);
+    }).on("request confirm combat", (payload: { unitId: string, uuid: string, x: number, y: number, attackerCoordinates: MapCoords, path: MapCoords[] }) => {
+        const world = GAME_WORLDS_MAP[payload.uuid];
+        const combatActions = world.runCombat(payload.unitId, payload.attackerCoordinates, { x: payload.x, y: payload.y }, payload.path);
         io.emit("response", combatActions);
-    }).on("request preview assist", (payload: { source: string, sourceCoordinates: MapCoords, targetCoordinates: MapCoords }) => {
-        const preview = debugWorld.previewAssist(payload.source, payload.targetCoordinates, payload.sourceCoordinates);
+    }).on("request preview assist", (payload: { source: string, uuid: string, sourceCoordinates: MapCoords, targetCoordinates: MapCoords }) => {
+        const world = GAME_WORLDS_MAP[payload.uuid];
+        const preview = world.previewAssist(payload.source, payload.targetCoordinates, payload.sourceCoordinates);
         socket.emit("response preview assist", preview);
-    }).on("request confirm assist", (payload: { source: string, targetCoordinates: MapCoords, sourceCoordinates: MapCoords }) => {
-        const assistActions = debugWorld.runAssist(payload.source, payload.targetCoordinates, payload.sourceCoordinates);
+    }).on("request confirm assist", (payload: { source: string, uuid: string, targetCoordinates: MapCoords, sourceCoordinates: MapCoords }) => {
+        const world = GAME_WORLDS_MAP[payload.uuid];
+        const assistActions = world.runAssist(payload.source, payload.targetCoordinates, payload.sourceCoordinates);
         io.emit("response", assistActions);
     }).on("request danger zone", (payload: { sideId: string }) => {
 
-    }).on("request update", () => {
-        const updatedEntities = parseEntities(debugWorld);
+    }).on("request update", (payload: { uuid: string }) => {
+        const world = GAME_WORLDS_MAP[payload.uuid];
+        const updatedEntities = parseEntities(world);
         io.emit("update-entities", updatedEntities);
-    }).on("request end turn", () => {
-        const newTurn = debugWorld.startTurn();
-        io.to(roomId).emit("response", newTurn);
+    }).on("request end turn", ({ uuid }: { uuid: string }) => {
+        const world = GAME_WORLDS_MAP[uuid];
+        const newTurn = world.startTurn();
+        io.emit("response", newTurn);
     });
 });
 
@@ -203,9 +243,16 @@ const teamSchema = z.object({
     passivec: z.string().optional(),
 }).array();
 
+app.post("/join", (req, res) => {
+
+});
+
+app.post("/create", (req, res) => {
+
+});
+
 app.get("/worlds/:id", (req, res) => {
-    process.env.NODE_ENV = "development";
-    const world = process.env.NODE_ENV === "development" ? debugWorld : GAME_WORLDS[req.params.id];
+    const world = GAME_WORLDS_ID_MAP[req.params.id];
     if (world) {
         const heroes = parseEntities(world);
         res.status(200);
@@ -259,7 +306,7 @@ app.post("/team/", validateRequest({
     //     }),
     // });
     // const id = shortid();
-    // GAME_WORLDS[id] = world;
+    // GAME_WORLDS_MAP[id] = world;
     // res.send(id);
 });
 
