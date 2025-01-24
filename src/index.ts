@@ -8,7 +8,12 @@ import { z } from "zod";
 import { Server } from "socket.io";
 import { team1, team2 } from "./debug-world";
 import shortid from "short-unique-id";
+
 const uid = new shortid({ length: 10 });
+const GAME_WORLDS_MAP: { [k: string]: GameWorld } = {};
+const GAME_WORLDS_ID_MAP: { [k: string]: GameWorld } = {};
+const UUID_BY_ID: { [k: string]: string } = {};
+const SOCKETS_BY_ROOM: { [k: string]: string[] } = {};
 
 function groupBy<T>(iterable: T[], filter: (element: T) => string) {
     const group: { [k: string]: T[] } = {};
@@ -29,6 +34,9 @@ interface MapCoords {
 const PORT = 3800;
 
 const app = express();
+
+app.use(cors());
+app.use(bodyParser.json());
 
 const server = createServer(app);
 const io = new Server(server, {
@@ -55,14 +63,6 @@ function parseEntities(world: GameWorld) {
 
     return entitiesDict;
 };
-
-const GAME_WORLDS_MAP: { [k: string]: GameWorld } = {};
-
-const GAME_WORLDS_ID_MAP: { [k: string]: GameWorld } = {};
-
-const UUID_BY_ID: { [k: string]: string } = {};
-
-const SOCKETS_BY_ROOM: { [k: string]: string[] } = {};
 
 io.on("connection", (socket) => {
     socket.on("loading-complete", ({ uuid }) => {
@@ -217,7 +217,7 @@ io.on("connection", (socket) => {
         const world = GAME_WORLDS_MAP[payload.uuid];
         const assistActions = world.runAssist(payload.source, payload.targetCoordinates, payload.sourceCoordinates);
         io.emit("response", assistActions);
-    }).on("request danger zone", (payload: { sideId: string }) => {
+    }).on("request enemy range", (payload: { sideId: string, worldId: string }) => {
 
     }).on("request update", (payload: { uuid: string }) => {
         const world = GAME_WORLDS_MAP[payload.uuid];
@@ -226,12 +226,9 @@ io.on("connection", (socket) => {
     }).on("request end turn", ({ uuid }: { uuid: string }) => {
         const world = GAME_WORLDS_MAP[uuid];
         const newTurn = world.startTurn();
-        io.emit("response", newTurn);
+        io.in(world.id).emit("response", newTurn);
     });
 });
-
-app.use(cors());
-app.use(bodyParser.json());
 
 const teamSchema = z.object({
     name: z.string(),
