@@ -240,8 +240,16 @@ const teamSchema = z.object({
     passivec: z.string().optional(),
 }).array();
 
-app.post("/join", (req, res) => {
-
+app.get("/moveset", (req, res) => {
+    const character = req.query.name.toString();
+    try {
+        const moveset = GameWorld.validator.getCharacterMoveset(decodeURIComponent(character));
+        res.write(JSON.stringify(moveset));
+    } catch (e) {
+        res.writeHead(400);
+        console.log(e);
+    }
+    res.end();
 });
 
 app.post("/create", (req, res) => {
