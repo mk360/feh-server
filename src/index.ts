@@ -67,8 +67,12 @@ function parseEntities(world: GameWorld) {
 io.on("connection", (socket) => {
     socket.on("loading-complete", ({ uuid }) => {
         const gameWorld = GAME_WORLDS_MAP[uuid];
-        const teamIds = gameWorld.state.teamIds;
-        socket.emit("allow-control", ({ ids: teamIds, id: uuid }));
+        if (!gameWorld) {
+
+        } else {
+            const teamIds = gameWorld.state.teamIds;
+            socket.emit("allow-control", ({ ids: teamIds, id: uuid }));
+        }
     });
 
     socket.on("create-session", ({ uuid }) => {
