@@ -166,23 +166,24 @@ io.on("connection", (socket) => {
     }).on("request confirm movement", (payload: {
         unitId: string,
         uuid: string,
+        roomId: string,
         x: number,
         y: number
     }) => {
         const world = GAME_WORLDS_MAP[payload.uuid];
         if (world.previewUnitMovement(payload.unitId, payload)) {
             const actionEnd = world.moveUnit(payload.unitId, payload, true);
-            io.emit("response confirm movement", {
+            io.in(payload.roomId).emit("response confirm movement", {
                 unitId: payload.unitId,
                 ...payload
             });
-            io.emit("response", actionEnd);
+            io.in(payload.roomId).emit("response", actionEnd);
 
             const newState = parseEntities(world);
-            io.emit("update-entities", newState);
+            io.in(payload.roomId).emit("update-entities", newState);
         } else {
             const oldPosition = world.getEntity(payload.unitId)?.getOne("Position");
-            io.emit("response confirm movement", {
+            io.in(payload.roomId).emit("response confirm movement", {
                 valid: false,
                 unitId: payload.unitId,
                 x: oldPosition!.x,
@@ -197,36 +198,37 @@ io.on("connection", (socket) => {
         unitId: string,
         x: number,
         uuid: string,
+        roomId: string,
         y: number
     }) => {
         const world = GAME_WORLDS_MAP[payload.uuid];
         world.moveUnit(payload.unitId, payload, true);
         const endAction = world.endAction(payload.unitId);
-        io.emit("response confirm movement", {
+        io.in(payload.roomId).emit("response confirm movement", {
             valid: true,
             unitId: payload.unitId,
             x: payload.x,
             y: payload.y,
         });
-        io.emit("response", endAction);
-    }).on("request confirm combat", (payload: { unitId: string, uuid: string, x: number, y: number, attackerCoordinates: MapCoords, path: MapCoords[] }) => {
+        io.in(payload.roomId).emit("response", endAction);
+    }).on("request confirm combat", (payload: { unitId: string, uuid: string, x: number, y: number, attackerCoordinates: MapCoords, path: MapCoords[], roomId: string }) => {
         const world = GAME_WORLDS_MAP[payload.uuid];
         const combatActions = world.runCombat(payload.unitId, payload.attackerCoordinates, { x: payload.x, y: payload.y }, payload.path);
-        io.emit("response", combatActions);
+        io.in(payload.roomId).emit("response", combatActions);
     }).on("request preview assist", (payload: { source: string, uuid: string, sourceCoordinates: MapCoords, targetCoordinates: MapCoords }) => {
         const world = GAME_WORLDS_MAP[payload.uuid];
         const preview = world.previewAssist(payload.source, payload.targetCoordinates, payload.sourceCoordinates);
         socket.emit("response preview assist", preview);
-    }).on("request confirm assist", (payload: { source: string, uuid: string, targetCoordinates: MapCoords, sourceCoordinates: MapCoords }) => {
+    }).on("request confirm assist", (payload: { source: string, uuid: string, targetCoordinates: MapCoords, sourceCoordinates: MapCoords, roomId: string }) => {
         const world = GAME_WORLDS_MAP[payload.uuid];
         const assistActions = world.runAssist(payload.source, payload.targetCoordinates, payload.sourceCoordinates);
-        io.emit("response", assistActions);
+        io.in(payload.roomId).emit("response", assistActions);
     }).on("request enemy range", (payload: { sideId: string, worldId: string }) => {
 
-    }).on("request update", (payload: { uuid: string }) => {
+    }).on("request update", (payload: { uuid: string, roomId: string }) => {
         const world = GAME_WORLDS_MAP[payload.uuid];
         const updatedEntities = parseEntities(world);
-        io.emit("update-entities", updatedEntities);
+        io.in(payload.roomId).emit("update-entities", updatedEntities);
     }).on("request end turn", ({ uuid }: { uuid: string }) => {
         const world = GAME_WORLDS_MAP[uuid];
         const newTurn = world.startTurn();

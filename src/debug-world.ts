@@ -72,7 +72,7 @@ export const team2 = [{
     name: "Fae: Divine Dragon",
     weapon: "Eternal Breath",
     skills: {
-        assist: "",
+        assist: "Shove",
         special: "Aegis",
         A: "Death Blow 3",
         B: "Desperation 3",
