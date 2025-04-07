@@ -213,7 +213,7 @@ io.on("connection", (socket) => {
             });
         }
     }).on("request preview battle", (payload: { unit: string, uuid: string, x: number, y: number, position: MapCoords, path: MapCoords[], roomId: string }) => {
-        const gameWorld = GAME_WORLDS_MAP[payload.uuid];
+        const gameWorld = GAME_WORLDS_MAP[payload.roomId];
         const preview = gameWorld.previewCombat(payload.unit, { x: payload.x, y: payload.y }, payload.position, payload.path);
         socket.emit("response preview battle", preview);
     }).on("request freeze unit", (payload: {
@@ -223,7 +223,7 @@ io.on("connection", (socket) => {
         roomId: string,
         y: number
     }) => {
-        const world = GAME_WORLDS_MAP[payload.uuid];
+        const world = GAME_WORLDS_MAP[payload.roomId];
         world.moveUnit(payload.unitId, payload, true);
         const endAction = world.endAction(payload.unitId);
         io.in(payload.roomId).emit("response confirm movement", {
@@ -234,27 +234,27 @@ io.on("connection", (socket) => {
         });
         io.in(payload.roomId).emit("response", endAction);
     }).on("request confirm combat", (payload: { unitId: string, uuid: string, x: number, y: number, attackerCoordinates: MapCoords, path: MapCoords[], roomId: string }) => {
-        const world = GAME_WORLDS_MAP[payload.uuid];
+        const world = GAME_WORLDS_MAP[payload.roomId];
         const combatActions = world.runCombat(payload.unitId, payload.attackerCoordinates, { x: payload.x, y: payload.y }, payload.path);
         io.in(payload.roomId).emit("response", combatActions);
     }).on("request preview assist", (payload: { source: string, uuid: string, sourceCoordinates: MapCoords, targetCoordinates: MapCoords, roomId: string }) => {
-        const world = GAME_WORLDS_MAP[payload.uuid];
+        const world = GAME_WORLDS_MAP[payload.roomId];
         const preview = world.previewAssist(payload.source, payload.targetCoordinates, payload.sourceCoordinates);
         socket.in(payload.roomId).emit("response preview assist", preview);
     }).on("request confirm assist", (payload: { source: string, uuid: string, targetCoordinates: MapCoords, sourceCoordinates: MapCoords, roomId: string }) => {
-        const world = GAME_WORLDS_MAP[payload.uuid];
+        const world = GAME_WORLDS_MAP[payload.roomId];
         const assistActions = world.runAssist(payload.source, payload.targetCoordinates, payload.sourceCoordinates);
         io.in(payload.roomId).emit("response", assistActions);
     }).on("request enemy range", (payload: { uuid: string, roomId: string }) => {
 
     }).on("request update", (payload: { uuid: string, roomId: string }) => {
-        const world = GAME_WORLDS_MAP[payload.uuid];
+        const world = GAME_WORLDS_MAP[payload.roomId];
         if (world) {
             const updatedEntities = parseEntities(world);
             io.in(payload.roomId).emit("update-entities", updatedEntities);
         }
     }).on("request end turn", ({ uuid, roomId }: { uuid: string, roomId: string }) => {
-        const world = GAME_WORLDS_MAP[uuid];
+        const world = GAME_WORLDS_MAP[roomId];
         const newTurn = world.startTurn();
         io.in(roomId).emit("response", newTurn);
     });
