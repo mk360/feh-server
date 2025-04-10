@@ -84,17 +84,18 @@ io.on("connection", (socket) => {
 
         } else {
             const teamIds = gameWorld.state.teamIds;
-            socket.emit("allow-control", ({ ids: teamIds, id: socket.handshake.auth.uuid }));
+            socket.emit("allow-control", ({ ids: teamIds, id: socket.handshake.auth.uuid, currentSide: gameWorld.state.currentSide }));
         }
     });
 
-    socket.on("create-session", ({ uuid }) => {
+    socket.on("create-session", () => {
         const newId = uid.randomUUID();
         socket.join(newId);
 
-        SOCKETS_BY_ROOM[newId] = [uuid];
-        ROOMS_BY_SOCKETS[uuid] = [newId];
+        SOCKETS_BY_ROOM[newId] = [socket.handshake.auth.uuid];
+        ROOMS_BY_SOCKETS[socket.handshake.auth.uuid] = [newId];
         socket.emit("confirm", "Your session has been created. Please share the ID <code>" + newId + "</code> with your opponent.");
+        socket.emit("sid", newId);
     }).on("disconnect", () => {
         const uuid = socket.handshake.auth.uuid;
         const rooms = ROOMS_BY_SOCKETS[uuid] ?? [];
@@ -240,13 +241,15 @@ io.on("connection", (socket) => {
     }).on("request preview assist", (payload: { source: string, uuid: string, sourceCoordinates: MapCoords, targetCoordinates: MapCoords, roomId: string }) => {
         const world = GAME_WORLDS_MAP[payload.roomId];
         const preview = world.previewAssist(payload.source, payload.targetCoordinates, payload.sourceCoordinates);
-        socket.in(payload.roomId).emit("response preview assist", preview);
+        socket.emit("response preview assist", preview);
     }).on("request confirm assist", (payload: { source: string, uuid: string, targetCoordinates: MapCoords, sourceCoordinates: MapCoords, roomId: string }) => {
         const world = GAME_WORLDS_MAP[payload.roomId];
-        const assistActions = world.runAssist(payload.source, payload.targetCoordinates, payload.sourceCoordinates);
+        const assistActions = world.runAssist(payload.source, payload.targetCoordinates, payload.sourceCoordinates, []);
         io.in(payload.roomId).emit("response", assistActions);
-    }).on("request enemy range", (payload: { uuid: string, roomId: string }) => {
-
+    }).on("request enemy range", (payload: { roomId: string; state: boolean }) => {
+        const world = GAME_WORLDS_MAP[payload.roomId];
+        const tiles = Array.from(world.getEnemyRange(socket.handshake.auth.uuid, payload.state));
+        socket.emit("response enemy range", tiles);
     }).on("request update", (payload: { uuid: string, roomId: string }) => {
         const world = GAME_WORLDS_MAP[payload.roomId];
         if (world) {
