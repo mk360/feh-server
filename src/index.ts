@@ -78,7 +78,7 @@ function parseEntities(world: GameWorld) {
 io.on("connection", (socket) => {
     socket.on("loading-complete", ({ roomId }) => {
         const gameWorld = GAME_WORLDS_MAP[roomId];
-        console.log("gameworld check", !!gameWorld)
+
         socket.join(roomId);
         if (!gameWorld) {
 
@@ -194,7 +194,8 @@ io.on("connection", (socket) => {
         y: number
     }) => {
         const world = GAME_WORLDS_MAP[payload.roomId];
-        if (world.previewUnitMovement(payload.unitId, payload)) {
+        const oldPosition = world.getEntity(payload.unitId)?.getOne("Position");
+        if (world.previewUnitMovement(payload.unitId, payload) && (oldPosition.x !== payload.x || oldPosition.y !== payload.y)) {
             const actionEnd = world.moveUnit(payload.unitId, payload, true);
             io.in(payload.roomId).emit("response confirm movement", {
                 unitId: payload.unitId,
@@ -205,7 +206,6 @@ io.on("connection", (socket) => {
             const newState = parseEntities(world);
             io.in(payload.roomId).emit("update-entities", newState);
         } else {
-            const oldPosition = world.getEntity(payload.unitId)?.getOne("Position");
             io.in(payload.roomId).emit("response confirm movement", {
                 valid: false,
                 unitId: payload.unitId,
@@ -225,7 +225,6 @@ io.on("connection", (socket) => {
         y: number
     }) => {
         const world = GAME_WORLDS_MAP[payload.roomId];
-        world.moveUnit(payload.unitId, payload, true);
         const endAction = world.endAction(payload.unitId);
         io.in(payload.roomId).emit("response confirm movement", {
             valid: true,
