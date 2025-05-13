@@ -1,13 +1,13 @@
-import GameWorld from "feh-battles";
-import express from "express";
-import { createServer } from "http";
 import bodyParser from "body-parser";
 import cors from "cors";
-import { validateRequest } from "zod-express-middleware";
-import { z } from "zod";
-import { Server } from "socket.io";
-import { team1, team2 } from "./debug-world";
+import express from "express";
+import GameWorld from "feh-battles";
+import { createServer } from "http";
 import shortid from "short-unique-id";
+import { Server } from "socket.io";
+import { z } from "zod";
+import { validateRequest } from "zod-express-middleware";
+import { retrieveTeam, saveTeam } from "./session-store";
 
 const uid = new shortid({ length: 10 });
 
@@ -118,9 +118,15 @@ io.on("connection", (socket) => {
             return;
         }
 
+        if (SOCKETS_BY_ROOM[roomId].includes(uuid)) {
+            socket.emit("error", "You already joined this session.");
+            return;
+        }
+
         SOCKETS_BY_ROOM[roomId].push(uuid);
         socket.join(roomId);
         io.in(roomId).fetchSockets().then(() => {
+            const [firstId, secondId] = SOCKETS_BY_ROOM[roomId];
             const newWorld = new GameWorld({
                 team1: SOCKETS_BY_ROOM[roomId][0],
                 team2: SOCKETS_BY_ROOM[roomId][1],
@@ -128,8 +134,8 @@ io.on("connection", (socket) => {
             });
             newWorld.generateMap();
             newWorld.initiate({
-                team1: team1,
-                team2: team2,
+                team1: retrieveTeam(firstId),
+                team2: retrieveTeam(secondId),
             });
             newWorld.startTurn();
 
@@ -145,48 +151,50 @@ io.on("connection", (socket) => {
     // il faudra trouver un moyen de batch plusieurs responses de sockets
     socket.on("request preview movement", ({ unitId, roomId }: { unitId: string, roomId: string }) => {
         const world = GAME_WORLDS_MAP[roomId];
-        const { movementTiles, attackTiles, warpTiles, targetableTiles, effectiveness, assistTiles } = world?.getUnitMovement(unitId);
-        let movementArray: number[] = [];
-        movementTiles.forEach((comp) => {
-            movementArray.push(comp.x * 10 + comp.y);
-        });
-        const attackableArray: number[] = [];
-        attackTiles.forEach((comp) => {
-            attackableArray.push(comp.x * 10 + comp.y);
-        });
-        const warpableArray: number[] = [];
-        warpTiles.forEach((comp) => {
-            warpableArray.push(comp.x * 10 + comp.y);
-        });
+        if (world?.getEntity(unitId)) {
+            const { movementTiles, attackTiles, warpTiles, targetableTiles, effectiveness, assistTiles } = world?.getUnitMovement(unitId);
+            let movementArray: number[] = [];
+            movementTiles.forEach((comp) => {
+                movementArray.push(comp.x * 10 + comp.y);
+            });
+            const attackableArray: number[] = [];
+            attackTiles.forEach((comp) => {
+                attackableArray.push(comp.x * 10 + comp.y);
+            });
+            const warpableArray: number[] = [];
+            warpTiles.forEach((comp) => {
+                warpableArray.push(comp.x * 10 + comp.y);
+            });
 
-        const targetableArray: number[] = [];
-        targetableTiles.forEach((comp) => {
-            targetableArray.push(comp.x * 10 + comp.y);
-        });
+            const targetableArray: number[] = [];
+            targetableTiles.forEach((comp) => {
+                targetableArray.push(comp.x * 10 + comp.y);
+            });
 
-        const assistArray: number[] = [];
-        assistTiles.forEach((comp) => {
-            assistArray.push(comp.x * 10 + comp.y);
-        });
+            const assistArray: number[] = [];
+            assistTiles.forEach((comp) => {
+                assistArray.push(comp.x * 10 + comp.y);
+            });
 
-        movementArray = movementArray.filter((t) => !assistArray.includes(t));
+            movementArray = movementArray.filter((t) => !assistArray.includes(t));
 
-        const stats = world.getUnitMapStats(unitId);
+            const stats = world.getUnitMapStats(unitId);
 
-        socket.emit("response preview movement", {
-            movement: movementArray,
-            attack: attackableArray,
-            warpTiles: warpableArray,
-            targetableTiles: targetableArray,
-            effectiveness,
-            assistArray,
-            unitId
-        });
+            socket.emit("response preview movement", {
+                movement: movementArray,
+                attack: attackableArray,
+                warpTiles: warpableArray,
+                targetableTiles: targetableArray,
+                effectiveness,
+                assistArray,
+                unitId
+            });
 
-        socket.emit("response unit map stats", {
-            unitId,
-            ...stats
-        });
+            socket.emit("response unit map stats", {
+                unitId,
+                ...stats
+            });
+        }
     }).on("request confirm movement", (payload: {
         unitId: string,
         roomId: string,
@@ -267,15 +275,17 @@ const teamSchema = z.object({
     weapon: z.string().optional(),
     assist: z.string().optional(),
     special: z.string().optional(),
-    passivea: z.string().optional(),
-    passiveb: z.string().optional(),
-    passivec: z.string().optional(),
-}).array();
+    A: z.string().optional(),
+    B: z.string().optional(),
+    C: z.string().optional(),
+    S: z.string().optional(),
+    merges: z.number().max(10).min(0).int(),
+});
 
 app.get("/moveset", (req, res) => {
     const character = req.query.name.toString();
     try {
-        const moveset = GameWorld.validator.getCharacterMoveset(decodeURIComponent(character));
+        const moveset = GameWorld.movesets.getCharacterMoveset(decodeURIComponent(character));
         res.write(JSON.stringify(moveset));
     } catch (e) {
         res.writeHead(400);
@@ -299,48 +309,17 @@ app.get("/worlds/:id", (req, res) => {
     }
 });
 
-app.post("/team/", validateRequest({
-    body: z.object({
-        team1: teamSchema,
-        team2: teamSchema
-    }).strict()
+app.post("/team", validateRequest({
+    body: teamSchema.array(),
 }), (req, res) => {
-    // const world = new GameWorld();
-    // world.initiate({
-    //     team1: req.body.team1.map((i) => {
-    //         return {
-    //             name: i.name,
-    //             weapon: i.weapon!,
-    //             skills: {
-    //                 assist: i.assist!,
-    //                 special: i.special!,
-    //                 A: i.passivea!,
-    //                 B: i.passiveb!,
-    //                 C: i.passivec!,
-    //                 S: "",
-    //             },
-    //             rarity: 5,
-    //         }
-    //     }),
-    //     team2: req.body.team2.map((i) => {
-    //         return {
-    //             name: i.name,
-    //             weapon: i.weapon!,
-    //             skills: {
-    //                 assist: i.assist!,
-    //                 special: i.special!,
-    //                 A: i.passivea!,
-    //                 B: i.passiveb!,
-    //                 C: i.passivec!,
-    //                 S: "",
-    //             },
-    //             rarity: 5,
-    //         }
-    //     }),
-    // });
-    // const id = shortid();
-    // GAME_WORLDS_MAP[id] = world;
-    // res.send(id);
+    const validation = GameWorld.validator.validateTeam(req.body as Required<typeof req.body[number]>[]);
+    if (Object.keys(validation).length) {
+        res.status(400).write(JSON.stringify(validation));
+    } else {
+        saveTeam(req.headers.authorization, req.body as Required<typeof req.body[number]>[]);
+        res.status(200).write("{}");
+    }
+    res.end();
 });
 
 server.listen(PORT, () => {
