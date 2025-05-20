@@ -133,14 +133,15 @@ io.on("connection", (socket) => {
                 trackChanges: true,
             });
             newWorld.generateMap();
-            newWorld.initiate({
-                team1: retrieveTeam(firstId),
-                team2: retrieveTeam(secondId),
-            });
-            newWorld.startTurn();
+            console.log(retrieveTeam(firstId), retrieveTeam(secondId));
+            // newWorld.initiate({
+            //     team1: retrieveTeam(firstId),
+            //     team2: retrieveTeam(secondId),
+            // });
+            // newWorld.startTurn();
 
-            GAME_WORLDS_MAP[roomId] = newWorld;
-            io.in(roomId).emit("join-session", roomId);
+            // GAME_WORLDS_MAP[roomId] = newWorld;
+            // io.in(roomId).emit("join-session", roomId);
         });
     });
     socket.on("ready", ({ roomId }) => {
@@ -286,7 +287,7 @@ app.get("/moveset", (req, res) => {
     const character = req.query.name.toString();
     try {
         const moveset = GameWorld.movesets.getCharacterMoveset(decodeURIComponent(character));
-        res.write(JSON.stringify(moveset));
+        res.json(moveset);
     } catch (e) {
         res.writeHead(400);
         console.log(e);
