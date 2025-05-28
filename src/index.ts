@@ -264,7 +264,7 @@ io.on("connection", (socket) => {
             const updatedEntities = parseEntities(world);
             io.in(payload.roomId).emit("update-entities", updatedEntities);
         }
-    }).on("request end turn", ({ uuid, roomId }: { uuid: string, roomId: string }) => {
+    }).on("request end turn", ({ roomId }: { uuid: string, roomId: string }) => {
         const world = GAME_WORLDS_MAP[roomId];
         const newTurn = world.startTurn();
         io.in(roomId).emit("response", newTurn);
@@ -280,8 +280,10 @@ const teamSchema = z.object({
     B: z.string().optional(),
     C: z.string().optional(),
     S: z.string().optional(),
+    asset: z.enum(["hp", "atk", "spd", "def", "res", ""]).optional(),
+    flaw: z.enum(["hp", "atk", "spd", "def", "res", ""]).optional(),
     merges: z.number().max(10).min(0).int(),
-});
+}).strict();
 
 app.get("/moveset", (req, res) => {
     const character = req.query.name.toString();
@@ -315,10 +317,10 @@ app.post("/team", validateRequest({
 }), (req, res) => {
     const validation = GameWorld.validator.validateTeam(req.body as Required<typeof req.body[number]>[]);
     if (Object.keys(validation).length) {
-        res.status(400).write(JSON.stringify(validation));
+        res.status(400).json(validation);
     } else {
         saveTeam(req.headers.authorization, req.body as Required<typeof req.body[number]>[]);
-        res.status(200).write("{}");
+        res.status(200).json({});
     }
     res.end();
 });
