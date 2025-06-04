@@ -88,14 +88,20 @@ io.on("connection", (socket) => {
         }
     });
 
-    socket.on("create-session", () => {
+    socket.on("create-session", (team) => {
         const newId = uid.randomUUID();
         socket.join(newId);
-
-        SOCKETS_BY_ROOM[newId] = [socket.handshake.auth.uuid];
-        ROOMS_BY_SOCKETS[socket.handshake.auth.uuid] = [newId];
-        socket.emit("confirm", "Your session has been created. Please share the ID <code>" + newId + "</code> with your opponent.");
-        socket.emit("sid", newId);
+        try {
+            teamSchema.array().parse(team);
+            SOCKETS_BY_ROOM[newId] = [socket.handshake.auth.uuid];
+            ROOMS_BY_SOCKETS[socket.handshake.auth.uuid] = [newId];
+            saveTeam(socket.handshake.auth.uuid, team);
+            socket.emit("confirm", "Your session has been created. The session ID was copied to your clipboard.");
+            socket.emit("sid", newId);
+        } catch (err) {
+            console.log(err)
+            socket.emit("error", "Your team is invalid. Please fix it in the teambuilder.");
+        }
     }).on("disconnect", () => {
         const uuid = socket.handshake.auth.uuid;
         const rooms = ROOMS_BY_SOCKETS[uuid] ?? [];
@@ -133,15 +139,14 @@ io.on("connection", (socket) => {
                 trackChanges: true,
             });
             newWorld.generateMap();
-            console.log(retrieveTeam(firstId), retrieveTeam(secondId));
-            // newWorld.initiate({
-            //     team1: retrieveTeam(firstId),
-            //     team2: retrieveTeam(secondId),
-            // });
-            // newWorld.startTurn();
+            newWorld.initiate({
+                team1: retrieveTeam(firstId),
+                team2: retrieveTeam(secondId),
+            });
+            newWorld.startTurn();
 
-            // GAME_WORLDS_MAP[roomId] = newWorld;
-            // io.in(roomId).emit("join-session", roomId);
+            GAME_WORLDS_MAP[roomId] = newWorld;
+            io.in(roomId).emit("join-session", roomId);
         });
     });
     socket.on("ready", ({ roomId }) => {
@@ -283,7 +288,7 @@ const teamSchema = z.object({
     asset: z.enum(["hp", "atk", "spd", "def", "res", ""]).optional(),
     flaw: z.enum(["hp", "atk", "spd", "def", "res", ""]).optional(),
     merges: z.number().max(10).min(0).int(),
-}).strict();
+}).required();
 
 app.get("/moveset", (req, res) => {
     const character = req.query.name.toString();
@@ -315,11 +320,27 @@ app.get("/worlds/:id", (req, res) => {
 app.post("/team", validateRequest({
     body: teamSchema.array(),
 }), (req, res) => {
-    const validation = GameWorld.validator.validateTeam(req.body as Required<typeof req.body[number]>[]);
+    const castBody = teamSchema.array().parse(req.body);
+    const normalizedBody = castBody.map(member => ({
+        ...member,
+        skills: {
+            weapon: member.weapon ?? "",
+            assist: member.assist ?? "",
+            special: member.special ?? "",
+            A: member.A ?? "",
+            B: member.B ?? "",
+            C: member.C ?? "",
+            S: member.S ?? "",
+        },
+        name: member.name ?? "",
+        merges: member.merges ?? 0,
+    }));
+    const validation = GameWorld.validator.validateTeam(normalizedBody);
+
     if (Object.keys(validation).length) {
         res.status(400).json(validation);
     } else {
-        saveTeam(req.headers.authorization, req.body as Required<typeof req.body[number]>[]);
+        saveTeam(req.headers.authorization, normalizedBody);
         res.status(200).json({});
     }
     res.end();
