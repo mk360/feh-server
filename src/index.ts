@@ -95,7 +95,7 @@ io.on("connection", (socket) => {
             teamSchema.array().parse(team);
             SOCKETS_BY_ROOM[newId] = [socket.handshake.auth.uuid];
             ROOMS_BY_SOCKETS[socket.handshake.auth.uuid] = [newId];
-            saveTeam(socket.handshake.auth.uuid, team);
+            saveTeam(socket.handshake.auth.uuid, processTeam(team));
             socket.emit("confirm", "Your session has been created. The session ID was copied to your clipboard.");
             socket.emit("sid", newId);
         } catch (err) {
@@ -114,7 +114,7 @@ io.on("connection", (socket) => {
             }
         }
         delete ROOMS_BY_SOCKETS[uuid];
-    }).on("join", ({ roomId, uuid }) => {
+    }).on("join", ({ roomId, uuid, team }) => {
         if (!SOCKETS_BY_ROOM[roomId]) {
             socket.emit("error", "This session does not exist.");
             return;
@@ -138,10 +138,11 @@ io.on("connection", (socket) => {
                 team2: SOCKETS_BY_ROOM[roomId][1],
                 trackChanges: true,
             });
+
             newWorld.generateMap();
             newWorld.initiate({
                 team1: retrieveTeam(firstId),
-                team2: retrieveTeam(secondId),
+                team2: processTeam(team),
             });
             newWorld.startTurn();
 
@@ -306,6 +307,9 @@ app.get("/worlds/:id", (req, res) => {
     const world = GAME_WORLDS_MAP[req.params.id];
     if (world) {
         const heroes = parseEntities(world);
+        console.dir({ heroes }, {
+            depth: Infinity
+        });
         res.status(200);
         res.send({
             mapId: world.state.mapId,
@@ -321,20 +325,7 @@ app.post("/team", validateRequest({
     body: teamSchema.array(),
 }), (req, res) => {
     const castBody = teamSchema.array().parse(req.body);
-    const normalizedBody = castBody.map(member => ({
-        ...member,
-        skills: {
-            weapon: member.weapon ?? "",
-            assist: member.assist ?? "",
-            special: member.special ?? "",
-            A: member.A ?? "",
-            B: member.B ?? "",
-            C: member.C ?? "",
-            S: member.S ?? "",
-        },
-        name: member.name ?? "",
-        merges: member.merges ?? 0,
-    }));
+    const normalizedBody = processTeam(castBody);
     const validation = GameWorld.validator.validateTeam(normalizedBody);
 
     if (Object.keys(validation).length) {
@@ -350,3 +341,21 @@ server.listen(PORT, () => {
     console.log("server listening at " + PORT);
 });
 
+function processTeam(team) {
+    return team.map(member => ({
+        weapon: member.weapon ?? "",
+        skills: {
+            assist: member.assist ?? "",
+            special: member.special ?? "",
+            A: member.A ?? "",
+            B: member.B ?? "",
+            C: member.C ?? "",
+            S: member.S ?? "",
+        },
+        rarity: 5,
+        name: member.name ?? "",
+        asset: member.asset ?? "",
+        flaw: member.flaw ?? "",
+        merges: member.merges ?? 0,
+    }));
+};
