@@ -95,11 +95,11 @@ io.on("connection", (socket) => {
             teamSchema.array().parse(team);
             SOCKETS_BY_ROOM[newId] = [socket.handshake.auth.uuid];
             ROOMS_BY_SOCKETS[socket.handshake.auth.uuid] = [newId];
+            const processedTeam = processTeam(team);
             saveTeam(socket.handshake.auth.uuid, processTeam(team));
             socket.emit("confirm", "Your session has been created. The session ID was copied to your clipboard.");
             socket.emit("sid", newId);
         } catch (err) {
-            console.log(err)
             socket.emit("error", "Your team is invalid. Please fix it in the teambuilder.");
         }
     }).on("disconnect", () => {
@@ -132,7 +132,7 @@ io.on("connection", (socket) => {
         SOCKETS_BY_ROOM[roomId].push(uuid);
         socket.join(roomId);
         io.in(roomId).fetchSockets().then(() => {
-            const [firstId, secondId] = SOCKETS_BY_ROOM[roomId];
+            const [firstId] = SOCKETS_BY_ROOM[roomId];
             const newWorld = new GameWorld({
                 team1: SOCKETS_BY_ROOM[roomId][0],
                 team2: SOCKETS_BY_ROOM[roomId][1],
@@ -354,8 +354,8 @@ function processTeam(team) {
         },
         rarity: 5,
         name: member.name ?? "",
-        asset: member.asset ?? "",
-        flaw: member.flaw ?? "",
+        boon: member.asset ?? "",
+        bane: member.flaw ?? "",
         merges: member.merges ?? 0,
     }));
 };
