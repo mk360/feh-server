@@ -307,9 +307,6 @@ app.get("/worlds/:id", (req, res) => {
     const world = GAME_WORLDS_MAP[req.params.id];
     if (world) {
         const heroes = parseEntities(world);
-        console.dir({ heroes }, {
-            depth: Infinity
-        });
         res.status(200);
         res.send({
             mapId: world.state.mapId,
