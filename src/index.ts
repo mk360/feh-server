@@ -230,8 +230,9 @@ io.on("connection", (socket) => {
         }
     }).on("request preview battle", (payload: { unit: string, uuid: string, x: number, y: number, position: MapCoords, path: MapCoords[], roomId: string }) => {
         const gameWorld = GAME_WORLDS_MAP[payload.roomId];
-        const preview = gameWorld.previewCombat(payload.unit, { x: payload.x, y: payload.y }, payload.position, payload.path);
+        const { history, ...preview } = gameWorld.previewCombat(payload.unit, { x: payload.x, y: payload.y }, payload.position, payload.path);
         socket.emit("response preview battle", preview);
+        socket.emit("history", history);
     }).on("request freeze unit", (payload: {
         unitId: string,
         x: number,
