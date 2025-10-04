@@ -95,7 +95,6 @@ io.on("connection", (socket) => {
             teamSchema.array().parse(team);
             SOCKETS_BY_ROOM[newId] = [socket.handshake.auth.uuid];
             ROOMS_BY_SOCKETS[socket.handshake.auth.uuid] = [newId];
-            const processedTeam = processTeam(team);
             saveTeam(socket.handshake.auth.uuid, processTeam(team));
             socket.emit("confirm", "Your session has been created. The session ID was copied to your clipboard.");
             socket.emit("sid", newId);
@@ -153,6 +152,7 @@ io.on("connection", (socket) => {
     socket.on("ready", ({ roomId }) => {
         const world = GAME_WORLDS_MAP[roomId];
         socket.emit("response", world.state.lastChangeSequence);
+
     });
 
     // il faudra trouver un moyen de batch plusieurs responses de sockets
@@ -255,12 +255,14 @@ io.on("connection", (socket) => {
         io.in(payload.roomId).emit("response", combatActions);
     }).on("request preview assist", (payload: { source: string, uuid: string, sourceCoordinates: MapCoords, targetCoordinates: MapCoords, roomId: string }) => {
         const world = GAME_WORLDS_MAP[payload.roomId];
-        const preview = world.previewAssist(payload.source, payload.targetCoordinates, payload.sourceCoordinates);
+        const { history, ...preview } = world.previewAssist(payload.source, payload.targetCoordinates, payload.sourceCoordinates);
         socket.emit("response preview assist", preview);
+        socket.emit("history", history);
     }).on("request confirm assist", (payload: { source: string, uuid: string, targetCoordinates: MapCoords, sourceCoordinates: MapCoords, roomId: string }) => {
         const world = GAME_WORLDS_MAP[payload.roomId];
-        const assistActions = world.runAssist(payload.source, payload.targetCoordinates, payload.sourceCoordinates, []);
-        io.in(payload.roomId).emit("response", assistActions);
+        const { changes, history } = world.runAssist(payload.source, payload.targetCoordinates, payload.sourceCoordinates, []);
+        io.in(payload.roomId).emit("response", changes);
+        io.in(payload.roomId).emit("history", history);
     }).on("request enemy range", (payload: { roomId: string; state: boolean }) => {
         const world = GAME_WORLDS_MAP[payload.roomId];
         const tiles = Array.from(world.getEnemyRange(socket.handshake.auth.uuid, payload.state));
@@ -273,8 +275,9 @@ io.on("connection", (socket) => {
         }
     }).on("request end turn", ({ roomId }: { uuid: string, roomId: string }) => {
         const world = GAME_WORLDS_MAP[roomId];
-        const newTurn = world.startTurn();
+        const { history, changes: newTurn } = world.startTurn();
         io.in(roomId).emit("response", newTurn);
+        io.in(roomId).emit("history", history);
     });
 });
 
